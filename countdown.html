@@ -496,6 +496,34 @@
             }
 
             window.addEventListener("load", init);
+
+            // ============================================================
+            //  AUDIO — plays noise.wav on site entry
+            // ============================================================
+            const audio = document.getElementById("bg-audio");
+
+            function tryPlayAudio() {
+                audio.play().catch(() => {});
+            }
+
+            // Try autoplay immediately
+            tryPlayAudio();
+
+            // Fallback: browsers block autoplay without interaction,
+            // so also play on first click/touch/keypress
+            function playOnce() {
+                tryPlayAudio();
+                document.removeEventListener("click", playOnce);
+                document.removeEventListener("touchstart", playOnce);
+                document.removeEventListener("keydown", playOnce);
+            }
+            document.addEventListener("click", playOnce);
+            document.addEventListener("touchstart", playOnce);
+            document.addEventListener("keydown", playOnce);
         </script>
+
+        <audio id="bg-audio" autoplay loop preload="auto">
+            <source src="noise.wav" type="audio/wav" />
+        </audio>
     </body>
 </html>
