@@ -244,8 +244,7 @@
       transform: scale(1);
     }
 
-    #head-canvas { width: 100%; height: 100%; cursor: grab; }
-    #head-canvas:active { cursor: grabbing; }
+    #head-canvas { width: 100%; height: 100%; }
 
     #main-content {
       position: relative;
@@ -1201,25 +1200,45 @@
 
       tryLoadSkin(0);
 
-      // Mouse drag
-      let drag = false, px = 0, py = 0, vx = 0, vy = 0;
-      el.addEventListener('mousedown', e => { drag = true; px = e.clientX; py = e.clientY; });
-      el.addEventListener('touchstart', e => { drag = true; px = e.touches[0].clientX; py = e.touches[0].clientY; }, { passive: true });
-      const mv = (cx, cy) => { if (!drag) return; vy += (cx - px) * 0.006; vx += (cy - py) * 0.006; px = cx; py = cy; };
-      window.addEventListener('mousemove', e => mv(e.clientX, e.clientY));
-      window.addEventListener('touchmove', e => mv(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-      window.addEventListener('mouseup', () => drag = false);
-      window.addEventListener('touchend', () => drag = false);
+      // --- Cursor tracking (desktop) / Auto-spin (mobile) ---
+      const isMobileDevice = () => window.matchMedia('(max-width: 768px)').matches;
+
+      // Target rotation for smooth interpolation
+      let targetRotY = 0, targetRotX = 0;
+      let currentRotY = 0, currentRotX = 0;
+
+      // Track mouse position globally for desktop look-at
+      window.addEventListener('mousemove', e => {
+        if (isMobileDevice()) return;
+        const rect = el.getBoundingClientRect();
+        const headCenterX = rect.left + rect.width / 2;
+        const headCenterY = rect.top + rect.height / 2;
+
+        // Normalize cursor offset from head center to -1..1 range based on viewport
+        const dx = (e.clientX - headCenterX) / (window.innerWidth * 0.5);
+        const dy = (e.clientY - headCenterY) / (window.innerHeight * 0.5);
+
+        // Clamp and map to rotation range (max ~45 degrees each way)
+        targetRotY = Math.max(-1, Math.min(1, dx)) * 0.75;
+        targetRotX = Math.max(-1, Math.min(1, dy)) * 0.4;
+      });
 
       (function animate() {
         requestAnimationFrame(animate);
-        group.rotation.x += vx;
-        group.rotation.y += vy;
-        vx *= 0.92; vy *= 0.92;
-        if (!drag && Math.abs(vx) < 0.001 && Math.abs(vy) < 0.001) {
+
+        if (isMobileDevice()) {
+          // Mobile: gentle auto-spin
           group.rotation.y += 0.004;
           group.rotation.x = Math.sin(Date.now() * 0.001) * 0.08;
+        } else {
+          // Desktop: smoothly interpolate toward cursor target
+          currentRotY += (targetRotY - currentRotY) * 0.06;
+          currentRotX += (targetRotX - currentRotX) * 0.06;
+          group.rotation.y = currentRotY;
+          group.rotation.x = currentRotX;
         }
+
+        // Subtle floating bob
         group.position.y = Math.sin(Date.now() * 0.0012) * 0.04;
         ren.render(scene, cam);
       })();
