@@ -498,32 +498,36 @@
             window.addEventListener("load", init);
 
             // ============================================================
-            //  AUDIO — plays noise.wav on site entry
+            //  AUDIO — play noise.wav on first user interaction
             // ============================================================
-            const audio = document.getElementById("bg-audio");
+            (function () {
+                const audio = document.getElementById("bg-music");
+                let started = false;
 
-            function tryPlayAudio() {
-                audio.play().catch(() => {});
-            }
+                function startAudio() {
+                    if (started) return;
+                    started = true;
+                    audio.volume = 1.0;
+                    audio.play().then(() => {
+                        console.log("Audio playing");
+                    }).catch((e) => {
+                        console.log("Audio play failed:", e);
+                        started = false;
+                    });
+                    removeListeners();
+                }
 
-            // Try autoplay immediately
-            tryPlayAudio();
+                function removeListeners() {
+                    ["click", "touchstart", "keydown", "mousemove"].forEach((evt) => {
+                        document.removeEventListener(evt, startAudio, true);
+                    });
+                }
 
-            // Fallback: browsers block autoplay without interaction,
-            // so also play on first click/touch/keypress
-            function playOnce() {
-                tryPlayAudio();
-                document.removeEventListener("click", playOnce);
-                document.removeEventListener("touchstart", playOnce);
-                document.removeEventListener("keydown", playOnce);
-            }
-            document.addEventListener("click", playOnce);
-            document.addEventListener("touchstart", playOnce);
-            document.addEventListener("keydown", playOnce);
+                // Browsers require user gesture — attach to multiple events
+                ["click", "touchstart", "keydown", "mousemove"].forEach((evt) => {
+                    document.addEventListener(evt, startAudio, true);
+                });
+            })();
         </script>
-
-        <audio id="bg-audio" autoplay loop preload="auto">
-            <source src="noise.wav" type="audio/wav" />
-        </audio>
     </body>
 </html>
