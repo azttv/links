@@ -1,912 +1,1642 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>az — Links</title>
-  <link href="https://fonts.cdnfonts.com/css/minecraftia" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      overflow: hidden;
-      font-family: 'Quicksand', sans-serif;
-      background: #0a0a0a;
-      width: 100vw;
-      height: 100vh;
-    }
-
-    /* ==================== INTRO SCREEN ==================== */
-    #intro-screen {
-      position: fixed; inset: 0;
-      background: #0a0a0a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 1000;
-      flex-direction: column;
-    }
-
-    #ascii-container {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-    }
-
-    #ascii-container canvas {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      image-rendering: optimizeSpeed;
-      image-rendering: -moz-crisp-edges;
-      image-rendering: -o-crisp-edges;
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: optimize-contrast;
-      image-rendering: crisp-edges;
-      image-rendering: pixelated;
-    }
-
-    #ascii-container pre {
-      margin: 0;
-      user-select: none;
-      padding: 0;
-      line-height: 1em;
-      text-align: left;
-      position: absolute;
-      left: 0;
-      top: 0;
-      background-image: radial-gradient(circle, #ff6188 0%, #fc9867 50%, #ffd866 100%);
-      background-attachment: fixed;
-      -webkit-text-fill-color: transparent;
-      -webkit-background-clip: text;
-      background-clip: text;
-      z-index: 9;
-      mix-blend-mode: difference;
-    }
-
-    #intro-hint {
-      color: rgba(255,255,255,0.2);
-      font-family: 'Minecraftia', monospace;
-      font-size: 12px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-top: 450px;
-      animation: hintPulse 2s ease-in-out infinite;
-    }
-
-    @keyframes hintPulse {
-      0%, 100% { opacity: 0.2; }
-      50% { opacity: 0.55; }
-    }
-
-    /* ==================== MAIN PAGE ==================== */
-    #main-page {
-      position: fixed; inset: 0;
-      display: none;
-      opacity: 0;
-      z-index: 1;
-    }
-
-    #video-bg {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      z-index: 0;
-      filter: brightness(0.65) saturate(1.3);
-    }
-
-    #sky-overlay {
-      position: absolute; inset: 0;
-      background: linear-gradient(
-        180deg,
-        rgba(100, 180, 255, 0.3) 0%,
-        rgba(60, 160, 240, 0.15) 50%,
-        rgba(20, 100, 200, 0.2) 100%
-      );
-      z-index: 1;
-    }
-
-    /* ==================== CENTER AREA ==================== */
-    #center-hub {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: visible;
-    }
-
-    /* ==================== ORBIT RING ==================== */
-    #orbit-ring {
-      position: absolute;
-      width: 520px; height: 520px;
-      /* center on head, offset down to account for nametag above */
-      top: calc(50% + 15px);
-      left: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      overflow: visible;
-    }
-
-    /* ==================== CLOUD BUTTON ==================== */
-    .cloud-btn {
-      position: absolute;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 0;
-      border: none;
-      cursor: pointer;
-      pointer-events: auto;
-      font-family: 'Quicksand', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      color: #3d85b8;
-      background: transparent;
-      text-decoration: none;
-      opacity: 0;
-      z-index: 10;
-      white-space: nowrap;
-      left: 50%; top: 50%;
-      transform: translate(-50%, -50%);
-      transition: transform 0.3s ease, filter 0.3s ease;
-      filter: drop-shadow(0 4px 8px rgba(80,140,200,0.22));
-      overflow: visible;
-    }
-
-    .cloud-btn:hover {
-      transform: translate(-50%, -50%) scale(1.08) translateY(-3px) !important;
-      filter: drop-shadow(0 8px 20px rgba(80,160,240,0.35));
-    }
-
-    .cloud-btn:active {
-      transform: translate(-50%, -50%) scale(0.96) !important;
-    }
-
-    .cloud-btn.visible {
-      animation: cloudOrbitIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    }
-
-    @keyframes cloudOrbitIn {
-      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0); }
-      60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
-      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    }
-
-    /* SVG cloud background */
-    .cloud-svg {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      /* taller than button to let bumps extend above */
-      height: 130%;
-      width: 100%;
-      pointer-events: none;
-    }
-
-    .cloud-btn-inner {
-      position: relative;
-      z-index: 2;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 26px 14px;
-    }
-
-    .cloud-btn .btn-icon { width: 16px; height: 16px; flex-shrink: 0; }
-    #nametag {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 3px 8px 3px;
-      background: rgba(0, 0, 0, 0.45);
-      border-radius: 0px;
-      margin-bottom: 0px;
-      opacity: 0;
-      transform: translateY(-8px) scale(0.8);
-      transition: opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s;
-      position: relative;
-    }
-
-    #nametag.visible {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    #nametag span {
-      font-family: 'Minecraftia', monospace;
-      font-size: 24px;
-      color: #fff;
-      text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
-      letter-spacing: 1px;
-    }
-
-    /* ==================== 3D HEAD ==================== */
-    #head-container {
-      width: 180px; height: 180px;
-      position: relative;
-      z-index: 10;
-      opacity: 0;
-      transform: scale(0.5);
-      transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    #head-container.visible {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    #head-canvas { width: 100%; height: 100%; }
-
-    #main-content {
-      position: relative;
-      z-index: 2;
-      width: 100%; height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* ==================== SONG INFO ==================== */
-    #song-info {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100;
-      display: none;
-      align-items: center;
-      gap: 10px;
-      opacity: 0;
-      transition: opacity 0.6s ease;
-    }
-
-    #song-info.visible { opacity: 1; }
-
-    #song-title {
-      font-family: 'Minecraftia', monospace;
-      font-size: 10px;
-      color: #7ec8f0;
-      text-shadow:
-        0 0 8px rgba(100, 180, 255, 0.6),
-        0 0 20px rgba(100, 180, 255, 0.3),
-        0 0 40px rgba(100, 180, 255, 0.15);
-      -webkit-text-stroke: 0.3px rgba(100, 200, 255, 0.4);
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-      line-height: 1.4;
-      text-align: center;
-    }
-
-    #song-title .song-artist {
-      color: #a8dcf0;
-      opacity: 0.7;
-    }
-
-    /* ==================== FLOATING CLOUDS ==================== */
-    .deco-cloud {
-      position: absolute;
-      background: rgba(255,255,255,0.06);
-      border-radius: 100px;
-      z-index: 0;
-      animation: floatCloud linear infinite;
-    }
-
-    @keyframes floatCloud {
-      from { transform: translateX(110vw); }
-      to   { transform: translateX(-350px); }
-    }
-
-    /* ==================== PARTICLES ==================== */
-    .particle {
-      position: absolute;
-      background: rgba(255,255,255,0.35);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 1;
-      animation: particleFloat linear infinite;
-    }
-
-    @keyframes particleFloat {
-      0%   { transform: translateY(100vh) scale(0); opacity: 0; }
-      10%  { opacity: 1; }
-      90%  { opacity: 0.8; }
-      100% { transform: translateY(-20vh) scale(1); opacity: 0; }
-    }
-
-    /* ==================== MUTE / ABOUT BUTTONS ==================== */
-    #mute-btn, #about-btn {
-      position: fixed;
-      bottom: 24px;
-      z-index: 100;
-      width: 48px; height: 48px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.25);
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      cursor: pointer;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.25s ease;
-      color: #fff;
-    }
-
-    #mute-btn { left: 24px; }
-    #about-btn { right: 24px; font-family: 'Minecraftia', monospace; font-size: 18px; }
-
-    #mute-btn:hover, #about-btn:hover {
-      background: rgba(255,255,255,0.2);
-      border-color: rgba(255,255,255,0.45);
-      transform: scale(1.08);
-    }
-
-    #mute-btn svg { width: 22px; height: 22px; }
-
-    /* ==================== ABOUT PANEL ==================== */
-    #about-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 200;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-    }
-
-    #about-overlay.visible { opacity: 1; }
-
-    #about-panel {
-      background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(220,240,255,0.95));
-      border-radius: 20px;
-      padding: 40px 40px 24px;
-      max-width: 440px;
-      width: 90%;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.35);
-      transform: scale(0.85) translateY(20px);
-      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      position: relative;
-    }
-
-    #about-overlay.visible #about-panel { transform: scale(1) translateY(0); }
-
-    #about-panel h2 {
-      font-family: 'Minecraftia', monospace;
-      font-size: 18px;
-      color: #2d7ab5;
-      margin-bottom: 16px;
-    }
-
-    #about-panel p {
-      font-size: 14px;
-      line-height: 1.8;
-      color: #444;
-      margin-bottom: 14px;
-    }
-
-    #about-panel p:last-child { margin-bottom: 0; }
-
-    #about-close {
-      position: absolute;
-      top: 14px; right: 14px;
-      width: 34px; height: 34px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(45, 122, 181, 0.1);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      color: #2d7ab5;
-      transition: background 0.2s;
-    }
-
-    #about-close:hover { background: rgba(45, 122, 181, 0.2); }
-
-    /* Language tabs */
-    #about-lang-tabs {
-      display: flex;
-      gap: 0;
-      margin-top: 18px;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 2px solid rgba(45, 122, 181, 0.15);
-    }
-
-    .lang-tab {
-      flex: 1;
-      padding: 8px 0;
-      border: none;
-      background: transparent;
-      font-family: 'Minecraftia', monospace;
-      font-size: 11px;
-      color: #2d7ab5;
-      cursor: pointer;
-      transition: background 0.2s, color 0.2s;
-      opacity: 0.5;
-    }
-
-    .lang-tab.active {
-      background: rgba(45, 122, 181, 0.12);
-      opacity: 1;
-    }
-
-    .lang-tab:hover:not(.active) {
-      background: rgba(45, 122, 181, 0.06);
-      opacity: 0.75;
-    }
-
-    .about-lang-content { display: none; }
-    .about-lang-content.active { display: block; }
-
-    .decrypt-char {
-      display: inline;
-      transition: opacity 0.08s;
-    }
-    .decrypt-char.encrypted {
-      color: #93c5e0;
-      opacity: 0.6;
-    }
-
-    /* ==================== MOBILE RESPONSIVE ==================== */
-    @media (max-width: 768px) {
-      /* --- Intro: hide ASCII, center hint --- */
-      #ascii-container { display: none !important; }
-
-      #intro-hint {
-        margin-top: 0;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 11px;
-      }
-
-      /* --- Main: vertical scroll layout --- */
-      #main-content {
-        justify-content: flex-start;
-        padding-top: 40px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      #center-hub {
-        flex-direction: column;
-        align-items: center;
-      }
-
-      #nametag {
-        margin-bottom: 0px;
-      }
-
-      #head-container {
-        position: relative;
-        width: 120px;
-        height: 120px;
-        margin-bottom: 65px;
-      }
-
-      /* --- Buttons: 2-column grid under head --- */
-      #orbit-ring {
-        position: relative !important;
-        width: 100% !important;
-        height: auto !important;
-        top: auto !important;
-        left: auto !important;
-        transform: none !important;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px 12px;
-        padding: 0 24px 100px;
-        pointer-events: auto;
-        max-width: 380px;
-      }
-
-      .cloud-btn {
-        position: relative !important;
-        left: auto !important;
-        top: auto !important;
-        transform: none !important;
-        margin: 0 !important;
-        opacity: 0;
-        filter: drop-shadow(0 3px 6px rgba(80,140,200,0.18));
-      }
-
-      .cloud-btn.visible {
-        animation: cloudMobileIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-      }
-
-      @keyframes cloudMobileIn {
-        0%   { opacity: 0; transform: scale(0.8) translateY(10px); }
-        100% { opacity: 1; transform: scale(1) translateY(0); }
-      }
-
-      .cloud-btn:hover {
-        transform: scale(1.05) !important;
-      }
-
-      .cloud-btn:active {
-        transform: scale(0.96) !important;
-      }
-
-      .cloud-btn-inner {
-        padding: 10px 16px 12px;
-        font-size: 12px;
-        gap: 6px;
-      }
-
-      .cloud-btn .btn-icon {
-        width: 14px;
-        height: 14px;
-      }
-
-      /* Smaller song info */
-      #song-info {
-        bottom: 16px;
-      }
-
-      #song-title {
-        font-size: 8px;
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- ==================== INTRO SCREEN ==================== -->
-  <div id="intro-screen">
-    <div id="ascii-container"></div>
-    <div id="intro-hint">cliquez pour entrer</div>
-  </div>
-
-  <!-- ==================== MAIN PAGE ==================== -->
-  <div id="main-page">
-    <video id="video-bg" autoplay loop muted playsinline>
-      <source src="FOND.mp4" type="video/mp4" />
-    </video>
-    <div id="sky-overlay"></div>
-
-    <div class="deco-cloud" style="width:300px;height:55px;top:7%;animation-duration:38s;animation-delay:-5s;"></div>
-    <div class="deco-cloud" style="width:220px;height:42px;top:20%;animation-duration:48s;animation-delay:-22s;"></div>
-    <div class="deco-cloud" style="width:360px;height:65px;top:60%;animation-duration:56s;animation-delay:-10s;"></div>
-    <div class="deco-cloud" style="width:180px;height:38px;top:78%;animation-duration:42s;animation-delay:-32s;"></div>
-    <div class="deco-cloud" style="width:250px;height:48px;top:42%;animation-duration:52s;animation-delay:-18s;"></div>
-
-    <div id="particles"></div>
-
-    <div id="main-content">
-      <div id="center-hub">
-        <div id="nametag"><span>az_ttv</span></div>
-        <div id="head-container">
-          <canvas id="head-canvas"></canvas>
-        </div>
-        <div id="orbit-ring">
-          <a class="cloud-btn" href="https://instagram.com/amdewen" target="_blank" data-index="0">
-            <svg class="cloud-svg" viewBox="0 -8 160 73" preserveAspectRatio="none" fill="white" xmlns="http://www.w3.org/2000/svg">
-              <rect x="5" y="28" width="150" height="30" rx="14"/>
-              <circle cx="40" cy="28" r="20"/>
-              <circle cx="80" cy="20" r="26"/>
-              <circle cx="118" cy="28" r="19"/>
-              <rect x="5" y="48" width="150" height="12" rx="10" fill="rgba(190,215,235,0.13)"/>
-            </svg>
-            <span class="cloud-btn-inner">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-              Instagram
-            </span>
-          </a>
-          <a class="cloud-btn" href="https://youtube.com/@azttvv" target="_blank" data-index="1">
-            <svg class="cloud-svg" viewBox="0 -8 160 73" preserveAspectRatio="none" fill="white" xmlns="http://www.w3.org/2000/svg">
-              <rect x="5" y="28" width="150" height="30" rx="14"/>
-              <circle cx="40" cy="28" r="20"/>
-              <circle cx="80" cy="20" r="26"/>
-              <circle cx="118" cy="28" r="19"/>
-              <rect x="5" y="48" width="150" height="12" rx="10" fill="rgba(190,215,235,0.13)"/>
-            </svg>
-            <span class="cloud-btn-inner">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.13C5.12 19.56 12 19.56 12 19.56s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.43z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
-              YouTube
-            </span>
-          </a>
-          <a class="cloud-btn" href="https://twitch.tv/azttvv" target="_blank" data-index="2">
-            <svg class="cloud-svg" viewBox="0 -8 160 73" preserveAspectRatio="none" fill="white" xmlns="http://www.w3.org/2000/svg">
-              <rect x="5" y="28" width="150" height="30" rx="14"/>
-              <circle cx="40" cy="28" r="20"/>
-              <circle cx="80" cy="20" r="26"/>
-              <circle cx="118" cy="28" r="19"/>
-              <rect x="5" y="48" width="150" height="12" rx="10" fill="rgba(190,215,235,0.13)"/>
-            </svg>
-            <span class="cloud-btn-inner">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h5l4-4V2zm-10 9V7m5 4V7"/></svg>
-              Twitch
-            </span>
-          </a>
-          <a class="cloud-btn" href="https://tiktok.com/@azttv" target="_blank" data-index="3">
-            <svg class="cloud-svg" viewBox="0 -8 160 73" preserveAspectRatio="none" fill="white" xmlns="http://www.w3.org/2000/svg">
-              <rect x="5" y="28" width="150" height="30" rx="14"/>
-              <circle cx="40" cy="28" r="20"/>
-              <circle cx="80" cy="20" r="26"/>
-              <circle cx="118" cy="28" r="19"/>
-              <rect x="5" y="48" width="150" height="12" rx="10" fill="rgba(190,215,235,0.13)"/>
-            </svg>
-            <span class="cloud-btn-inner">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 0-5.78 2.93 2.93 0 0 1 .88.13v-3.5a6.37 6.37 0 0 0-.88-.07 6.26 6.26 0 0 0 0 12.51 6.27 6.27 0 0 0 6.27-6.27V9.16a8.22 8.22 0 0 0 3.83.95V6.69z"/></svg>
-              TikTok
-            </span>
-          </a>
-          <a class="cloud-btn" href="https://discord.gg/az_ttv" target="_blank" data-index="4">
-            <svg class="cloud-svg" viewBox="0 -8 160 73" preserveAspectRatio="none" fill="white" xmlns="http://www.w3.org/2000/svg">
-              <rect x="5" y="28" width="150" height="30" rx="14"/>
-              <circle cx="40" cy="28" r="20"/>
-              <circle cx="80" cy="20" r="26"/>
-              <circle cx="118" cy="28" r="19"/>
-              <rect x="5" y="48" width="150" height="12" rx="10" fill="rgba(190,215,235,0.13)"/>
-            </svg>
-            <span class="cloud-btn-inner">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.618-1.25.077.077 0 00-.079-.037A19.74 19.74 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 00.031.056 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.11 13.11 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.009c.12.099.246.198.373.292a.077.077 0 01-.006.127 12.3 12.3 0 01-1.873.892.076.076 0 00-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 00.084.028 19.84 19.84 0 006.002-3.03.077.077 0 00.032-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.028z"/></svg>
-              Discord
-            </span>
-          </a>
-          <a class="cloud-btn" href="https://github.com/azttv" target="_blank" data-index="5">
-            <svg class="cloud-svg" viewBox="0 -8 160 73" preserveAspectRatio="none" fill="white" xmlns="http://www.w3.org/2000/svg">
-              <rect x="5" y="28" width="150" height="30" rx="14"/>
-              <circle cx="40" cy="28" r="20"/>
-              <circle cx="80" cy="20" r="26"/>
-              <circle cx="118" cy="28" r="19"/>
-              <rect x="5" y="48" width="150" height="12" rx="10" fill="rgba(190,215,235,0.13)"/>
-            </svg>
-            <span class="cloud-btn-inner">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.51 11.51 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
-              GitHub
-            </span>
-          </a>
-          <a class="cloud-btn" href="https://steamcommunity.com/id/azttv" target="_blank" data-index="6">
-            <svg class="cloud-svg" viewBox="0 -8 160 73" preserveAspectRatio="none" fill="white" xmlns="http://www.w3.org/2000/svg">
-              <rect x="5" y="28" width="150" height="30" rx="14"/>
-              <circle cx="40" cy="28" r="20"/>
-              <circle cx="80" cy="20" r="26"/>
-              <circle cx="118" cy="28" r="19"/>
-              <rect x="5" y="48" width="150" height="12" rx="10" fill="rgba(190,215,235,0.13)"/>
-            </svg>
-            <span class="cloud-btn-inner">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 12.001-5.373 12.001-12S18.606 0 11.979 0z"/></svg>
-              Steam
-            </span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== UI ==================== -->
-  <button id="mute-btn" title="Toggle Music">
-    <svg id="icon-unmuted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-    </svg>
-    <svg id="icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-      <line x1="23" y1="9" x2="17" y2="15"/>
-      <line x1="17" y1="9" x2="23" y2="15"/>
-    </svg>
-  </button>
-
-  <button id="about-btn" title="About Me">?</button>
-
-  <div id="song-info">
-    <span id="song-title">Hip Shop <span class="song-artist">- Toby Fox</span></span>
-  </div>
-
-  <div id="about-overlay">
-    <div id="about-panel">
-      <button id="about-close">&times;</button>
-      <h2 id="about-title">À Propos</h2>
-      <div class="about-lang-content active" data-lang="fr">
-        <p>Salut ! Je suis <strong>az</strong>, créateur de contenu et développeur originaire de France. Je passe la plupart de mon temps à jouer à des jeux-vidéos, à créer des vidéos et à créer des trucs sympas pour ma communauté.</p>
-        <p>Je gère un serveur Minecraft français appelé <strong>True Vanilla</strong>, où l'on mise sur une expérience de survie pure et authentique. Quand je ne joue pas, je suis probablement en train de coder, de monter des vidéos ou de me détendre en musique.</p>
-        <p style="color: #2d7ab5; font-weight: 600;">N'hésite pas à me rejoindre sur toutes mes plateformes !</p>
-      </div>
-      <div class="about-lang-content" data-lang="en">
-        <p>Hey! I'm <strong>az</strong>, a passionate content creator and gamer from France. I spend most of my time streaming on Twitch, creating videos, and building cool stuff for my Minecraft community.</p>
-        <p>I run a French Minecraft server called <strong>True Vanilla</strong> where we focus on the pure survival experience. When I'm not gaming, I'm probably coding, editing videos, or vibing to music.</p>
-        <p style="color: #2d7ab5; font-weight: 600;">Feel free to connect with me on any platform!</p>
-      </div>
-      <div id="about-lang-tabs">
-        <button class="lang-tab active" data-lang="fr">FR</button>
-        <button class="lang-tab" data-lang="en">EN</button>
-      </div>
-    </div>
-  </div>
-
-  <audio id="bg-music" loop preload="auto">
-    <source src="music.wav" type="audio/wav" />
-  </audio>
-
-  <script>
-    // ============================================================
-    //  ASCII TEXT ANIMATION — Faithful port of ReactBits AsciiText
-    //  Original: https://reactbits.dev/text-animations/ascii-text
-    //  Ported from: https://codepen.io/JuanFuentes/pen/eYEeoyE
-    // ============================================================
-
-    Math.map = function (n, start, stop, start2, stop2) {
-      return ((n - start) / (stop - start)) * (stop2 - start2) + start2;
-    };
-
-    const PX_RATIO = window.devicePixelRatio || 1;
-
-    class AsciiFilter {
-      constructor(renderer, { fontSize, fontFamily, charset, invert } = {}) {
-        this.renderer = renderer;
-        this.domElement = document.createElement('div');
-        this.domElement.style.position = 'absolute';
-        this.domElement.style.top = '0';
-        this.domElement.style.left = '0';
-        this.domElement.style.width = '100%';
-        this.domElement.style.height = '100%';
-
-        this.pre = document.createElement('pre');
-        this.domElement.appendChild(this.pre);
-
-        this.canvas = document.createElement('canvas');
-        this.context = this.canvas.getContext('2d');
-        this.domElement.appendChild(this.canvas);
-
-        this.deg = 0;
-        this.invert = invert ?? true;
-        this.fontSize = fontSize ?? 12;
-        this.fontFamily = fontFamily ?? "'Courier New', monospace";
-        this.charset = charset ?? ' .\'`^",:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
-
-        this.context.webkitImageSmoothingEnabled = false;
-        this.context.mozImageSmoothingEnabled = false;
-        this.context.msImageSmoothingEnabled = false;
-        this.context.imageSmoothingEnabled = false;
-
-        this.onMouseMove = this.onMouseMove.bind(this);
-        document.addEventListener('mousemove', this.onMouseMove);
-      }
-
-      setSize(width, height) {
-        this.width = width;
-        this.height = height;
-        this.renderer.setSize(width, height);
-        this.reset();
-        this.center = { x: width / 2, y: height / 2 };
-        this.mouse = { x: this.center.x, y: this.center.y };
-      }
-
-      reset() {
-        this.context.font = `${this.fontSize}px ${this.fontFamily}`;
-        const charWidth = this.context.measureText('A').width;
-        this.cols = Math.floor(this.width / (this.fontSize * (charWidth / this.fontSize)));
-        this.rows = Math.floor(this.height / this.fontSize);
-        this.canvas.width = this.cols;
-        this.canvas.height = this.rows;
-        this.pre.style.fontFamily = this.fontFamily;
-        this.pre.style.fontSize = `${this.fontSize}px`;
-        this.pre.style.margin = '0';
-        this.pre.style.padding = '0';
-        this.pre.style.lineHeight = '1em';
-        this.pre.style.position = 'absolute';
-        this.pre.style.left = '0';
-        this.pre.style.top = '0';
-        this.pre.style.zIndex = '9';
-        this.pre.style.backgroundAttachment = 'fixed';
-        this.pre.style.mixBlendMode = 'difference';
-      }
-
-      render(scene, camera) {
-        this.renderer.render(scene, camera);
-        const w = this.canvas.width;
-        const h = this.canvas.height;
-        this.context.clearRect(0, 0, w, h);
-        if (this.context && w && h) {
-          this.context.drawImage(this.renderer.domElement, 0, 0, w, h);
-        }
-        this.asciify(this.context, w, h);
-        this.hue();
-      }
-
-      onMouseMove(e) {
-        this.mouse = { x: e.clientX * PX_RATIO, y: e.clientY * PX_RATIO };
-      }
-
-      get dx() { return this.mouse.x - this.center.x; }
-      get dy() { return this.mouse.y - this.center.y; }
-
-      hue() {
-        const deg = (Math.atan2(this.dy, this.dx) * 180) / Math.PI;
-        this.deg += (deg - this.deg) * 0.075;
-        this.domElement.style.filter = `hue-rotate(${this.deg.toFixed(1)}deg)`;
-      }
-
-      asciify(ctx, w, h) {
-        if (w && h) {
-          const imgData = ctx.getImageData(0, 0, w, h).data;
-          let str = '';
-          for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-              const i = x * 4 + y * 4 * w;
-              const [r, g, b, a] = [imgData[i], imgData[i + 1], imgData[i + 2], imgData[i + 3]];
-              if (a === 0) { str += ' '; continue; }
-              let gray = (0.3 * r + 0.6 * g + 0.1 * b) / 255;
-              let idx = Math.floor((1 - gray) * (this.charset.length - 1));
-              if (this.invert) idx = this.charset.length - idx - 1;
-              str += this.charset[idx];
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>az — Links</title>
+        <link
+            href="https://fonts.cdnfonts.com/css/minecraftia"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap"
+            rel="stylesheet"
+        />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <style>
+            *,
+            *::before,
+            *::after {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
             }
-            str += '\n';
-          }
-          this.pre.innerHTML = str;
-        }
-      }
 
-      dispose() {
-        document.removeEventListener('mousemove', this.onMouseMove);
-      }
-    }
+            body {
+                overflow: hidden;
+                font-family: "Quicksand", sans-serif;
+                background: #0a0a0a;
+                width: 100vw;
+                height: 100vh;
+            }
 
-    class CanvasTxt {
-      constructor(txt, { fontSize = 200, fontFamily = 'Arial', color = '#fdf9f3' } = {}) {
-        this.canvas = document.createElement('canvas');
-        this.context = this.canvas.getContext('2d');
-        this.txt = txt;
-        this.fontSize = fontSize;
-        this.fontFamily = fontFamily;
-        this.color = color;
-        this.font = `600 ${this.fontSize}px ${this.fontFamily}`;
-      }
+            /* ==================== INTRO SCREEN ==================== */
+            #intro-screen {
+                position: fixed;
+                inset: 0;
+                background: #0a0a0a;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                z-index: 1000;
+                flex-direction: column;
+            }
 
-      resize() {
-        this.context.font = this.font;
-        const metrics = this.context.measureText(this.txt);
-        const textWidth = Math.ceil(metrics.width) + 20;
-        const textHeight = Math.ceil(metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent) + 20;
-        this.canvas.width = textWidth;
-        this.canvas.height = textHeight;
-      }
+            #ascii-container {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+            }
 
-      render() {
-        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.context.fillStyle = this.color;
-        this.context.font = this.font;
-        const metrics = this.context.measureText(this.txt);
-        const yPos = 10 + metrics.actualBoundingBoxAscent;
-        this.context.fillText(this.txt, 10, yPos);
-      }
+            #ascii-container canvas {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                image-rendering: optimizeSpeed;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: -o-crisp-edges;
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: optimize-contrast;
+                image-rendering: crisp-edges;
+                image-rendering: pixelated;
+            }
 
-      get width() { return this.canvas.width; }
-      get height() { return this.canvas.height; }
-      get texture() { return this.canvas; }
-    }
+            #ascii-container pre {
+                margin: 0;
+                user-select: none;
+                padding: 0;
+                line-height: 1em;
+                text-align: left;
+                position: absolute;
+                left: 0;
+                top: 0;
+                background-image: radial-gradient(
+                    circle,
+                    #ff6188 0%,
+                    #fc9867 50%,
+                    #ffd866 100%
+                );
+                background-attachment: fixed;
+                -webkit-text-fill-color: transparent;
+                -webkit-background-clip: text;
+                background-clip: text;
+                z-index: 9;
+                mix-blend-mode: difference;
+            }
 
-    function initAsciiIntro() {
-      const container = document.getElementById('ascii-container');
-      const { width, height } = container.getBoundingClientRect();
-      if (!width || !height) return () => {};
+            #intro-hint {
+                color: rgba(255, 255, 255, 0.2);
+                font-family: "Minecraftia", monospace;
+                font-size: 12px;
+                letter-spacing: 3px;
+                text-transform: uppercase;
+                margin-top: 450px;
+                animation: hintPulse 2s ease-in-out infinite;
+            }
 
-      const textString = 'Click here';
-      const asciiFontSize = 10;
-      const textFontSize = 150;
-      const textColor = '#fdf9f3';
-      const planeBaseHeight = 6;
-      const enableWaves = true;
+            @keyframes hintPulse {
+                0%,
+                100% {
+                    opacity: 0.2;
+                }
+                50% {
+                    opacity: 0.55;
+                }
+            }
 
-      const vertexShader = `
+            /* ==================== MAIN PAGE ==================== */
+            #main-page {
+                position: fixed;
+                inset: 0;
+                display: none;
+                opacity: 0;
+                z-index: 1;
+            }
+
+            #video-bg {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                z-index: 0;
+                filter: brightness(0.65) saturate(1.3);
+            }
+
+            #sky-overlay {
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(
+                    180deg,
+                    rgba(100, 180, 255, 0.3) 0%,
+                    rgba(60, 160, 240, 0.15) 50%,
+                    rgba(20, 100, 200, 0.2) 100%
+                );
+                z-index: 1;
+            }
+
+            /* ==================== CENTER AREA ==================== */
+            #center-hub {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                overflow: visible;
+            }
+
+            /* ==================== ORBIT RING ==================== */
+            #orbit-ring {
+                position: absolute;
+                width: 520px;
+                height: 520px;
+                /* center on head, offset down to account for nametag above */
+                top: calc(50% + 15px);
+                left: 50%;
+                transform: translate(-50%, -50%);
+                pointer-events: none;
+                overflow: visible;
+            }
+
+            /* ==================== CLOUD BUTTON ==================== */
+            .cloud-btn {
+                position: absolute;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 0;
+                border: none;
+                cursor: pointer;
+                pointer-events: auto;
+                font-family: "Quicksand", sans-serif;
+                font-size: 13px;
+                font-weight: 700;
+                color: #3d85b8;
+                background: transparent;
+                text-decoration: none;
+                opacity: 0;
+                z-index: 10;
+                white-space: nowrap;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                transition:
+                    transform 0.3s ease,
+                    filter 0.3s ease;
+                filter: drop-shadow(0 4px 8px rgba(80, 140, 200, 0.22));
+                overflow: visible;
+            }
+
+            .cloud-btn:hover {
+                transform: translate(-50%, -50%) scale(1.08) translateY(-3px) !important;
+                filter: drop-shadow(0 8px 20px rgba(80, 160, 240, 0.35));
+            }
+
+            .cloud-btn:active {
+                transform: translate(-50%, -50%) scale(0.96) !important;
+            }
+
+            .cloud-btn.visible {
+                animation: cloudOrbitIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)
+                    forwards;
+            }
+
+            @keyframes cloudOrbitIn {
+                0% {
+                    opacity: 0;
+                    transform: translate(-50%, -50%) scale(0);
+                }
+                60% {
+                    opacity: 1;
+                    transform: translate(-50%, -50%) scale(1.06);
+                }
+                100% {
+                    opacity: 1;
+                    transform: translate(-50%, -50%) scale(1);
+                }
+            }
+
+            /* SVG cloud background */
+            .cloud-svg {
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                /* taller than button to let bumps extend above */
+                height: 130%;
+                width: 100%;
+                pointer-events: none;
+            }
+
+            .cloud-btn-inner {
+                position: relative;
+                z-index: 2;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 26px 14px;
+            }
+
+            .cloud-btn .btn-icon {
+                width: 16px;
+                height: 16px;
+                flex-shrink: 0;
+            }
+            #nametag {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 3px 8px 3px;
+                background: rgba(0, 0, 0, 0.45);
+                border-radius: 0px;
+                margin-bottom: 0px;
+                opacity: 0;
+                transform: translateY(-8px) scale(0.8);
+                transition:
+                    opacity 0.5s ease 0.1s,
+                    transform 0.5s ease 0.1s;
+                position: relative;
+            }
+
+            #nametag.visible {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+
+            #nametag span {
+                font-family: "Minecraftia", monospace;
+                font-size: 24px;
+                color: #fff;
+                text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+                letter-spacing: 1px;
+            }
+
+            /* ==================== 3D HEAD ==================== */
+            #head-container {
+                width: 180px;
+                height: 180px;
+                position: relative;
+                z-index: 10;
+                opacity: 0;
+                transform: scale(0.5);
+                transition:
+                    opacity 0.8s ease,
+                    transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+
+            #head-container.visible {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            #head-canvas {
+                width: 100%;
+                height: 100%;
+            }
+
+            #main-content {
+                position: relative;
+                z-index: 2;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* ==================== SONG INFO ==================== */
+            #song-info {
+                position: fixed;
+                bottom: 24px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 100;
+                display: none;
+                align-items: center;
+                gap: 10px;
+                opacity: 0;
+                transition: opacity 0.6s ease;
+            }
+
+            #song-info.visible {
+                opacity: 1;
+            }
+
+            #song-title {
+                font-family: "Minecraftia", monospace;
+                font-size: 10px;
+                color: #7ec8f0;
+                text-shadow:
+                    0 0 8px rgba(100, 180, 255, 0.6),
+                    0 0 20px rgba(100, 180, 255, 0.3),
+                    0 0 40px rgba(100, 180, 255, 0.15);
+                -webkit-text-stroke: 0.3px rgba(100, 200, 255, 0.4);
+                letter-spacing: 0.5px;
+                white-space: nowrap;
+                line-height: 1.4;
+                text-align: center;
+            }
+
+            #song-title .song-artist {
+                color: #a8dcf0;
+                opacity: 0.7;
+            }
+
+            /* ==================== FLOATING CLOUDS ==================== */
+            .deco-cloud {
+                position: absolute;
+                background: rgba(255, 255, 255, 0.06);
+                border-radius: 100px;
+                z-index: 0;
+                animation: floatCloud linear infinite;
+            }
+
+            @keyframes floatCloud {
+                from {
+                    transform: translateX(110vw);
+                }
+                to {
+                    transform: translateX(-350px);
+                }
+            }
+
+            /* ==================== PARTICLES ==================== */
+            .particle {
+                position: absolute;
+                background: rgba(255, 255, 255, 0.35);
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 1;
+                animation: particleFloat linear infinite;
+            }
+
+            @keyframes particleFloat {
+                0% {
+                    transform: translateY(100vh) scale(0);
+                    opacity: 0;
+                }
+                10% {
+                    opacity: 1;
+                }
+                90% {
+                    opacity: 0.8;
+                }
+                100% {
+                    transform: translateY(-20vh) scale(1);
+                    opacity: 0;
+                }
+            }
+
+            /* ==================== MUTE / ABOUT BUTTONS ==================== */
+            #mute-btn,
+            #about-btn {
+                position: fixed;
+                bottom: 24px;
+                z-index: 100;
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                border: 2px solid rgba(255, 255, 255, 0.25);
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                cursor: pointer;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.25s ease;
+                color: #fff;
+            }
+
+            #mute-btn {
+                left: 24px;
+            }
+            #about-btn {
+                right: 24px;
+                font-family: "Minecraftia", monospace;
+                font-size: 18px;
+            }
+
+            #mute-btn:hover,
+            #about-btn:hover {
+                background: rgba(255, 255, 255, 0.2);
+                border-color: rgba(255, 255, 255, 0.45);
+                transform: scale(1.08);
+            }
+
+            #mute-btn svg {
+                width: 22px;
+                height: 22px;
+            }
+
+            /* ==================== ABOUT PANEL ==================== */
+            #about-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.6);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                z-index: 200;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.4s ease;
+            }
+
+            #about-overlay.visible {
+                opacity: 1;
+            }
+
+            #about-panel {
+                background: linear-gradient(
+                    135deg,
+                    rgba(255, 255, 255, 0.95),
+                    rgba(220, 240, 255, 0.95)
+                );
+                border-radius: 20px;
+                padding: 40px 40px 24px;
+                max-width: 440px;
+                width: 90%;
+                box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+                transform: scale(0.85) translateY(20px);
+                transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+                position: relative;
+            }
+
+            #about-overlay.visible #about-panel {
+                transform: scale(1) translateY(0);
+            }
+
+            #about-panel h2 {
+                font-family: "Minecraftia", monospace;
+                font-size: 18px;
+                color: #2d7ab5;
+                margin-bottom: 16px;
+            }
+
+            #about-panel p {
+                font-size: 14px;
+                line-height: 1.8;
+                color: #444;
+                margin-bottom: 14px;
+            }
+
+            #about-panel p:last-child {
+                margin-bottom: 0;
+            }
+
+            #about-close {
+                position: absolute;
+                top: 14px;
+                right: 14px;
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                border: none;
+                background: rgba(45, 122, 181, 0.1);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                color: #2d7ab5;
+                transition: background 0.2s;
+            }
+
+            #about-close:hover {
+                background: rgba(45, 122, 181, 0.2);
+            }
+
+            /* Language tabs */
+            #about-lang-tabs {
+                display: flex;
+                gap: 0;
+                margin-top: 18px;
+                border-radius: 8px;
+                overflow: hidden;
+                border: 2px solid rgba(45, 122, 181, 0.15);
+            }
+
+            .lang-tab {
+                flex: 1;
+                padding: 8px 0;
+                border: none;
+                background: transparent;
+                font-family: "Minecraftia", monospace;
+                font-size: 11px;
+                color: #2d7ab5;
+                cursor: pointer;
+                transition:
+                    background 0.2s,
+                    color 0.2s;
+                opacity: 0.5;
+            }
+
+            .lang-tab.active {
+                background: rgba(45, 122, 181, 0.12);
+                opacity: 1;
+            }
+
+            .lang-tab:hover:not(.active) {
+                background: rgba(45, 122, 181, 0.06);
+                opacity: 0.75;
+            }
+
+            .about-lang-content {
+                display: none;
+            }
+            .about-lang-content.active {
+                display: block;
+            }
+
+            .decrypt-char {
+                display: inline;
+                transition: opacity 0.08s;
+            }
+            .decrypt-char.encrypted {
+                color: #93c5e0;
+                opacity: 0.6;
+            }
+
+            /* ==================== MOBILE RESPONSIVE ==================== */
+            @media (max-width: 768px) {
+                /* --- Intro: hide ASCII, center hint --- */
+                #ascii-container {
+                    display: none !important;
+                }
+
+                #intro-hint {
+                    margin-top: 0;
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    font-size: 11px;
+                }
+
+                /* --- Main: vertical scroll layout --- */
+                #main-content {
+                    justify-content: flex-start;
+                    padding-top: 40px;
+                    overflow-y: auto;
+                    -webkit-overflow-scrolling: touch;
+                }
+
+                #center-hub {
+                    flex-direction: column;
+                    align-items: center;
+                }
+
+                #nametag {
+                    margin-bottom: 0px;
+                }
+
+                #head-container {
+                    position: relative;
+                    width: 120px;
+                    height: 120px;
+                    margin-bottom: 65px;
+                }
+
+                /* --- Buttons: 2-column grid under head --- */
+                #orbit-ring {
+                    position: relative !important;
+                    width: 100% !important;
+                    height: auto !important;
+                    top: auto !important;
+                    left: auto !important;
+                    transform: none !important;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 16px 12px;
+                    padding: 0 24px 100px;
+                    pointer-events: auto;
+                    max-width: 380px;
+                }
+
+                .cloud-btn {
+                    position: relative !important;
+                    left: auto !important;
+                    top: auto !important;
+                    transform: none !important;
+                    margin: 0 !important;
+                    opacity: 0;
+                    filter: drop-shadow(0 3px 6px rgba(80, 140, 200, 0.18));
+                }
+
+                .cloud-btn.visible {
+                    animation: cloudMobileIn 0.5s
+                        cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                }
+
+                @keyframes cloudMobileIn {
+                    0% {
+                        opacity: 0;
+                        transform: scale(0.8) translateY(10px);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: scale(1) translateY(0);
+                    }
+                }
+
+                .cloud-btn:hover {
+                    transform: scale(1.05) !important;
+                }
+
+                .cloud-btn:active {
+                    transform: scale(0.96) !important;
+                }
+
+                .cloud-btn-inner {
+                    padding: 10px 16px 12px;
+                    font-size: 12px;
+                    gap: 6px;
+                }
+
+                .cloud-btn .btn-icon {
+                    width: 14px;
+                    height: 14px;
+                }
+
+                /* Smaller song info */
+                #song-info {
+                    bottom: 16px;
+                }
+
+                #song-title {
+                    font-size: 8px;
+                }
+            }
+            /* ==================== SECRET NUMPAD (desktop only) ==================== */
+            #secret-numpad {
+                display: none;
+                flex-direction: column;
+                align-items: center;
+                gap: 12px;
+                z-index: 20;
+                opacity: 0;
+                transform: translateY(20px) scale(0.9);
+                transition:
+                    opacity 0.5s ease,
+                    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+
+            #secret-numpad.visible {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            #numpad-display {
+                font-family: "Minecraftia", monospace;
+                font-size: 18px;
+                color: #fff;
+                letter-spacing: 8px;
+                text-shadow: 0 0 10px rgba(100, 180, 255, 0.5);
+                min-width: 160px;
+                text-align: center;
+                padding: 6px 16px;
+                background: rgba(0, 0, 0, 0.35);
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                min-height: 34px;
+            }
+
+            #numpad-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+
+            .numpad-key {
+                width: 52px;
+                height: 52px;
+                border: none;
+                border-radius: 12px;
+                background: rgba(255, 255, 255, 0.08);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                color: #fff;
+                font-family: "Minecraftia", monospace;
+                font-size: 16px;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                border: 1px solid rgba(255, 255, 255, 0.06);
+            }
+
+            .numpad-key:hover {
+                background: rgba(255, 255, 255, 0.18);
+                transform: scale(1.08);
+                border-color: rgba(100, 180, 255, 0.3);
+            }
+
+            .numpad-key:active {
+                transform: scale(0.92);
+                background: rgba(100, 180, 255, 0.25);
+            }
+
+            .numpad-key.clear {
+                font-size: 12px;
+                color: rgba(255, 100, 100, 0.7);
+            }
+
+            .numpad-key.clear:hover {
+                color: #ff6b6b;
+                background: rgba(255, 100, 100, 0.12);
+                border-color: rgba(255, 100, 100, 0.3);
+            }
+
+            #numpad-display.shake {
+                animation: numpadShake 0.4s ease;
+                color: #ff6b6b;
+            }
+
+            @keyframes numpadShake {
+                0%,
+                100% {
+                    transform: translateX(0);
+                }
+                20% {
+                    transform: translateX(-6px);
+                }
+                40% {
+                    transform: translateX(6px);
+                }
+                60% {
+                    transform: translateX(-4px);
+                }
+                80% {
+                    transform: translateX(4px);
+                }
+            }
+
+            #numpad-display.success {
+                color: #6bffa0;
+                text-shadow: 0 0 14px rgba(107, 255, 160, 0.5);
+            }
+
+            /* Head clickable cursor on desktop */
+            #head-container {
+                cursor: pointer;
+            }
+
+            /* When numpad is active: head moves up above numpad */
+            body.numpad-active #head-container {
+                transform: scale(1) translateY(-240px) !important;
+                z-index: 30;
+                transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+
+            body.numpad-active #nametag {
+                opacity: 0 !important;
+                pointer-events: none;
+            }
+
+            /* Class to reliably hide elements during numpad (overrides animations) */
+            .numpad-hide {
+                opacity: 0 !important;
+                pointer-events: none !important;
+                transition: opacity 0.35s ease !important;
+            }
+
+            .numpad-show {
+                transition: opacity 0.4s ease !important;
+            }
+
+            /* Hover hint badge on buttons */
+            .hint-badge {
+                position: absolute;
+                top: -6px;
+                right: -6px;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background: rgba(100, 180, 255, 0.85);
+                color: #fff;
+                font-family: "Minecraftia", monospace;
+                font-size: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 20;
+                opacity: 0;
+                transform: scale(0);
+                transition:
+                    opacity 0.3s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                pointer-events: none;
+                box-shadow: 0 0 10px rgba(100, 180, 255, 0.5);
+                text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+            }
+
+            .hint-badge.show {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            /* Hide numpad on mobile */
+            @media (max-width: 768px) {
+                #secret-numpad {
+                    display: none !important;
+                }
+                #head-container {
+                    cursor: default !important;
+                }
+                .hint-badge {
+                    display: none !important;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- ==================== INTRO SCREEN ==================== -->
+        <div id="intro-screen">
+            <div id="ascii-container"></div>
+            <div id="intro-hint">cliquez pour entrer</div>
+        </div>
+
+        <!-- ==================== MAIN PAGE ==================== -->
+        <div id="main-page">
+            <video id="video-bg" autoplay loop muted playsinline>
+                <source src="FOND.mp4" type="video/mp4" />
+            </video>
+            <div id="sky-overlay"></div>
+
+            <div
+                class="deco-cloud"
+                style="
+                    width: 300px;
+                    height: 55px;
+                    top: 7%;
+                    animation-duration: 38s;
+                    animation-delay: -5s;
+                "
+            ></div>
+            <div
+                class="deco-cloud"
+                style="
+                    width: 220px;
+                    height: 42px;
+                    top: 20%;
+                    animation-duration: 48s;
+                    animation-delay: -22s;
+                "
+            ></div>
+            <div
+                class="deco-cloud"
+                style="
+                    width: 360px;
+                    height: 65px;
+                    top: 60%;
+                    animation-duration: 56s;
+                    animation-delay: -10s;
+                "
+            ></div>
+            <div
+                class="deco-cloud"
+                style="
+                    width: 180px;
+                    height: 38px;
+                    top: 78%;
+                    animation-duration: 42s;
+                    animation-delay: -32s;
+                "
+            ></div>
+            <div
+                class="deco-cloud"
+                style="
+                    width: 250px;
+                    height: 48px;
+                    top: 42%;
+                    animation-duration: 52s;
+                    animation-delay: -18s;
+                "
+            ></div>
+
+            <div id="particles"></div>
+
+            <div id="main-content">
+                <div id="center-hub">
+                    <div id="nametag"><span>az_ttv</span></div>
+                    <div id="head-container">
+                        <canvas id="head-canvas"></canvas>
+                    </div>
+                    <div id="orbit-ring">
+                        <a
+                            class="cloud-btn"
+                            href="https://instagram.com/amdewen"
+                            target="_blank"
+                            data-index="0"
+                            data-hint="5"
+                        >
+                            <span class="hint-badge">5</span>
+                            <svg
+                                class="cloud-svg"
+                                viewBox="0 -8 160 73"
+                                preserveAspectRatio="none"
+                                fill="white"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <rect
+                                    x="5"
+                                    y="28"
+                                    width="150"
+                                    height="30"
+                                    rx="14"
+                                />
+                                <circle cx="40" cy="28" r="20" />
+                                <circle cx="80" cy="20" r="26" />
+                                <circle cx="118" cy="28" r="19" />
+                                <rect
+                                    x="5"
+                                    y="48"
+                                    width="150"
+                                    height="12"
+                                    rx="10"
+                                    fill="rgba(190,215,235,0.13)"
+                                />
+                            </svg>
+                            <span class="cloud-btn-inner">
+                                <svg
+                                    class="btn-icon"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <rect
+                                        x="2"
+                                        y="2"
+                                        width="20"
+                                        height="20"
+                                        rx="5"
+                                        ry="5"
+                                    />
+                                    <path
+                                        d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"
+                                    />
+                                    <line
+                                        x1="17.5"
+                                        y1="6.5"
+                                        x2="17.51"
+                                        y2="6.5"
+                                    />
+                                </svg>
+                                Instagram
+                            </span>
+                        </a>
+                        <a
+                            class="cloud-btn"
+                            href="https://youtube.com/@azttvv"
+                            target="_blank"
+                            data-index="1"
+                            data-hint="7"
+                        >
+                            <span class="hint-badge">7</span>
+                            <svg
+                                class="cloud-svg"
+                                viewBox="0 -8 160 73"
+                                preserveAspectRatio="none"
+                                fill="white"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <rect
+                                    x="5"
+                                    y="28"
+                                    width="150"
+                                    height="30"
+                                    rx="14"
+                                />
+                                <circle cx="40" cy="28" r="20" />
+                                <circle cx="80" cy="20" r="26" />
+                                <circle cx="118" cy="28" r="19" />
+                                <rect
+                                    x="5"
+                                    y="48"
+                                    width="150"
+                                    height="12"
+                                    rx="10"
+                                    fill="rgba(190,215,235,0.13)"
+                                />
+                            </svg>
+                            <span class="cloud-btn-inner">
+                                <svg
+                                    class="btn-icon"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path
+                                        d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.13C5.12 19.56 12 19.56 12 19.56s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.43z"
+                                    />
+                                    <polygon
+                                        points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"
+                                    />
+                                </svg>
+                                YouTube
+                            </span>
+                        </a>
+                        <a
+                            class="cloud-btn"
+                            href="https://twitch.tv/azttvv"
+                            target="_blank"
+                            data-index="2"
+                            data-hint="8"
+                        >
+                            <span class="hint-badge">8</span>
+                            <svg
+                                class="cloud-svg"
+                                viewBox="0 -8 160 73"
+                                preserveAspectRatio="none"
+                                fill="white"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <rect
+                                    x="5"
+                                    y="28"
+                                    width="150"
+                                    height="30"
+                                    rx="14"
+                                />
+                                <circle cx="40" cy="28" r="20" />
+                                <circle cx="80" cy="20" r="26" />
+                                <circle cx="118" cy="28" r="19" />
+                                <rect
+                                    x="5"
+                                    y="48"
+                                    width="150"
+                                    height="12"
+                                    rx="10"
+                                    fill="rgba(190,215,235,0.13)"
+                                />
+                            </svg>
+                            <span class="cloud-btn-inner">
+                                <svg
+                                    class="btn-icon"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path
+                                        d="M21 2H3v16h5v4l4-4h5l4-4V2zm-10 9V7m5 4V7"
+                                    />
+                                </svg>
+                                Twitch
+                            </span>
+                        </a>
+                        <a
+                            class="cloud-btn"
+                            href="https://tiktok.com/@azttv"
+                            target="_blank"
+                            data-index="3"
+                            data-hint="3"
+                        >
+                            <span class="hint-badge">3</span>
+                            <svg
+                                class="cloud-svg"
+                                viewBox="0 -8 160 73"
+                                preserveAspectRatio="none"
+                                fill="white"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <rect
+                                    x="5"
+                                    y="28"
+                                    width="150"
+                                    height="30"
+                                    rx="14"
+                                />
+                                <circle cx="40" cy="28" r="20" />
+                                <circle cx="80" cy="20" r="26" />
+                                <circle cx="118" cy="28" r="19" />
+                                <rect
+                                    x="5"
+                                    y="48"
+                                    width="150"
+                                    height="12"
+                                    rx="10"
+                                    fill="rgba(190,215,235,0.13)"
+                                />
+                            </svg>
+                            <span class="cloud-btn-inner">
+                                <svg
+                                    class="btn-icon"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 0-5.78 2.93 2.93 0 0 1 .88.13v-3.5a6.37 6.37 0 0 0-.88-.07 6.26 6.26 0 0 0 0 12.51 6.27 6.27 0 0 0 6.27-6.27V9.16a8.22 8.22 0 0 0 3.83.95V6.69z"
+                                    />
+                                </svg>
+                                TikTok
+                            </span>
+                        </a>
+                        <a
+                            class="cloud-btn"
+                            href="https://discord.gg/az_ttv"
+                            target="_blank"
+                            data-index="4"
+                            data-hint="2"
+                        >
+                            <span class="hint-badge">2</span>
+                            <svg
+                                class="cloud-svg"
+                                viewBox="0 -8 160 73"
+                                preserveAspectRatio="none"
+                                fill="white"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <rect
+                                    x="5"
+                                    y="28"
+                                    width="150"
+                                    height="30"
+                                    rx="14"
+                                />
+                                <circle cx="40" cy="28" r="20" />
+                                <circle cx="80" cy="20" r="26" />
+                                <circle cx="118" cy="28" r="19" />
+                                <rect
+                                    x="5"
+                                    y="48"
+                                    width="150"
+                                    height="12"
+                                    rx="10"
+                                    fill="rgba(190,215,235,0.13)"
+                                />
+                            </svg>
+                            <span class="cloud-btn-inner">
+                                <svg
+                                    class="btn-icon"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M20.317 4.37a19.79 19.79 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.618-1.25.077.077 0 00-.079-.037A19.74 19.74 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 00.031.056 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.11 13.11 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.009c.12.099.246.198.373.292a.077.077 0 01-.006.127 12.3 12.3 0 01-1.873.892.076.076 0 00-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 00.084.028 19.84 19.84 0 006.002-3.03.077.077 0 00.032-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.028z"
+                                    />
+                                </svg>
+                                Discord
+                            </span>
+                        </a>
+                        <a
+                            class="cloud-btn"
+                            href="https://github.com/azttv"
+                            target="_blank"
+                            data-index="5"
+                            data-hint="9"
+                        >
+                            <span class="hint-badge">9</span>
+                            <svg
+                                class="cloud-svg"
+                                viewBox="0 -8 160 73"
+                                preserveAspectRatio="none"
+                                fill="white"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <rect
+                                    x="5"
+                                    y="28"
+                                    width="150"
+                                    height="30"
+                                    rx="14"
+                                />
+                                <circle cx="40" cy="28" r="20" />
+                                <circle cx="80" cy="20" r="26" />
+                                <circle cx="118" cy="28" r="19" />
+                                <rect
+                                    x="5"
+                                    y="48"
+                                    width="150"
+                                    height="12"
+                                    rx="10"
+                                    fill="rgba(190,215,235,0.13)"
+                                />
+                            </svg>
+                            <span class="cloud-btn-inner">
+                                <svg
+                                    class="btn-icon"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.51 11.51 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"
+                                    />
+                                </svg>
+                                GitHub
+                            </span>
+                        </a>
+                        <a
+                            class="cloud-btn"
+                            href="https://steamcommunity.com/id/azttv"
+                            target="_blank"
+                            data-index="6"
+                            data-hint="4"
+                        >
+                            <span class="hint-badge">4</span>
+                            <svg
+                                class="cloud-svg"
+                                viewBox="0 -8 160 73"
+                                preserveAspectRatio="none"
+                                fill="white"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <rect
+                                    x="5"
+                                    y="28"
+                                    width="150"
+                                    height="30"
+                                    rx="14"
+                                />
+                                <circle cx="40" cy="28" r="20" />
+                                <circle cx="80" cy="20" r="26" />
+                                <circle cx="118" cy="28" r="19" />
+                                <rect
+                                    x="5"
+                                    y="48"
+                                    width="150"
+                                    height="12"
+                                    rx="10"
+                                    fill="rgba(190,215,235,0.13)"
+                                />
+                            </svg>
+                            <span class="cloud-btn-inner">
+                                <svg
+                                    class="btn-icon"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 12.001-5.373 12.001-12S18.606 0 11.979 0z"
+                                    />
+                                </svg>
+                                Steam
+                            </span>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="secret-numpad">
+                    <div id="numpad-display"></div>
+                    <div id="numpad-grid">
+                        <button class="numpad-key" data-num="1">1</button>
+                        <button class="numpad-key" data-num="2">2</button>
+                        <button class="numpad-key" data-num="3">3</button>
+                        <button class="numpad-key" data-num="4">4</button>
+                        <button class="numpad-key" data-num="5">5</button>
+                        <button class="numpad-key" data-num="6">6</button>
+                        <button class="numpad-key" data-num="7">7</button>
+                        <button class="numpad-key" data-num="8">8</button>
+                        <button class="numpad-key" data-num="9">9</button>
+                        <button class="numpad-key clear" data-num="clear">
+                            CLR
+                        </button>
+                        <button class="numpad-key" data-num="0">0</button>
+                        <button class="numpad-key clear" data-num="back">
+                            &#9003;
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== UI ==================== -->
+        <button id="mute-btn" title="Toggle Music">
+            <svg
+                id="icon-unmuted"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+            <svg
+                id="icon-muted"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="display: none"
+            >
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <line x1="23" y1="9" x2="17" y2="15" />
+                <line x1="17" y1="9" x2="23" y2="15" />
+            </svg>
+        </button>
+
+        <button id="about-btn" title="About Me">?</button>
+
+        <div id="song-info">
+            <span id="song-title"
+                >Hip Shop <span class="song-artist">- Toby Fox</span></span
+            >
+        </div>
+
+        <div id="about-overlay">
+            <div id="about-panel">
+                <button id="about-close">&times;</button>
+                <h2 id="about-title">À Propos</h2>
+                <div class="about-lang-content active" data-lang="fr">
+                    <p>
+                        Salut ! Je suis <strong>az</strong>, créateur de contenu
+                        et développeur originaire de France. Je passe la plupart
+                        de mon temps à jouer à des jeux-vidéos, à créer des
+                        vidéos et à créer des trucs sympas pour ma communauté.
+                    </p>
+                    <p>
+                        Je gère un serveur Minecraft français appelé
+                        <strong>True Vanilla</strong>, où l'on mise sur une
+                        expérience de survie pure et authentique. Quand je ne
+                        joue pas, je suis probablement en train de coder, de
+                        monter des vidéos ou de me détendre en musique.
+                    </p>
+                    <p style="color: #2d7ab5; font-weight: 600">
+                        N'hésite pas à me rejoindre sur toutes mes plateformes !
+                    </p>
+                </div>
+                <div class="about-lang-content" data-lang="en">
+                    <p>
+                        Hey! I'm <strong>az</strong>, a passionate content
+                        creator and gamer from France. I spend most of my time
+                        streaming on Twitch, creating videos, and building cool
+                        stuff for my Minecraft community.
+                    </p>
+                    <p>
+                        I run a French Minecraft server called
+                        <strong>True Vanilla</strong> where we focus on the pure
+                        survival experience. When I'm not gaming, I'm probably
+                        coding, editing videos, or vibing to music.
+                    </p>
+                    <p style="color: #2d7ab5; font-weight: 600">
+                        Feel free to connect with me on any platform!
+                    </p>
+                </div>
+                <div id="about-lang-tabs">
+                    <button class="lang-tab active" data-lang="fr">FR</button>
+                    <button class="lang-tab" data-lang="en">EN</button>
+                </div>
+            </div>
+        </div>
+
+        <audio id="bg-music" loop preload="auto">
+            <source src="music.wav" type="audio/wav" />
+        </audio>
+
+        <script>
+            // ============================================================
+            //  ASCII TEXT ANIMATION — Faithful port of ReactBits AsciiText
+            //  Original: https://reactbits.dev/text-animations/ascii-text
+            //  Ported from: https://codepen.io/JuanFuentes/pen/eYEeoyE
+            // ============================================================
+
+            Math.map = function (n, start, stop, start2, stop2) {
+                return (
+                    ((n - start) / (stop - start)) * (stop2 - start2) + start2
+                );
+            };
+
+            const PX_RATIO = window.devicePixelRatio || 1;
+
+            class AsciiFilter {
+                constructor(
+                    renderer,
+                    { fontSize, fontFamily, charset, invert } = {},
+                ) {
+                    this.renderer = renderer;
+                    this.domElement = document.createElement("div");
+                    this.domElement.style.position = "absolute";
+                    this.domElement.style.top = "0";
+                    this.domElement.style.left = "0";
+                    this.domElement.style.width = "100%";
+                    this.domElement.style.height = "100%";
+
+                    this.pre = document.createElement("pre");
+                    this.domElement.appendChild(this.pre);
+
+                    this.canvas = document.createElement("canvas");
+                    this.context = this.canvas.getContext("2d");
+                    this.domElement.appendChild(this.canvas);
+
+                    this.deg = 0;
+                    this.invert = invert ?? true;
+                    this.fontSize = fontSize ?? 12;
+                    this.fontFamily = fontFamily ?? "'Courier New', monospace";
+                    this.charset =
+                        charset ??
+                        " .'`^\",:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+
+                    this.context.webkitImageSmoothingEnabled = false;
+                    this.context.mozImageSmoothingEnabled = false;
+                    this.context.msImageSmoothingEnabled = false;
+                    this.context.imageSmoothingEnabled = false;
+
+                    this.onMouseMove = this.onMouseMove.bind(this);
+                    document.addEventListener("mousemove", this.onMouseMove);
+                }
+
+                setSize(width, height) {
+                    this.width = width;
+                    this.height = height;
+                    this.renderer.setSize(width, height);
+                    this.reset();
+                    this.center = { x: width / 2, y: height / 2 };
+                    this.mouse = { x: this.center.x, y: this.center.y };
+                }
+
+                reset() {
+                    this.context.font = `${this.fontSize}px ${this.fontFamily}`;
+                    const charWidth = this.context.measureText("A").width;
+                    this.cols = Math.floor(
+                        this.width /
+                            (this.fontSize * (charWidth / this.fontSize)),
+                    );
+                    this.rows = Math.floor(this.height / this.fontSize);
+                    this.canvas.width = this.cols;
+                    this.canvas.height = this.rows;
+                    this.pre.style.fontFamily = this.fontFamily;
+                    this.pre.style.fontSize = `${this.fontSize}px`;
+                    this.pre.style.margin = "0";
+                    this.pre.style.padding = "0";
+                    this.pre.style.lineHeight = "1em";
+                    this.pre.style.position = "absolute";
+                    this.pre.style.left = "0";
+                    this.pre.style.top = "0";
+                    this.pre.style.zIndex = "9";
+                    this.pre.style.backgroundAttachment = "fixed";
+                    this.pre.style.mixBlendMode = "difference";
+                }
+
+                render(scene, camera) {
+                    this.renderer.render(scene, camera);
+                    const w = this.canvas.width;
+                    const h = this.canvas.height;
+                    this.context.clearRect(0, 0, w, h);
+                    if (this.context && w && h) {
+                        this.context.drawImage(
+                            this.renderer.domElement,
+                            0,
+                            0,
+                            w,
+                            h,
+                        );
+                    }
+                    this.asciify(this.context, w, h);
+                    this.hue();
+                }
+
+                onMouseMove(e) {
+                    this.mouse = {
+                        x: e.clientX * PX_RATIO,
+                        y: e.clientY * PX_RATIO,
+                    };
+                }
+
+                get dx() {
+                    return this.mouse.x - this.center.x;
+                }
+                get dy() {
+                    return this.mouse.y - this.center.y;
+                }
+
+                hue() {
+                    const deg = (Math.atan2(this.dy, this.dx) * 180) / Math.PI;
+                    this.deg += (deg - this.deg) * 0.075;
+                    this.domElement.style.filter = `hue-rotate(${this.deg.toFixed(1)}deg)`;
+                }
+
+                asciify(ctx, w, h) {
+                    if (w && h) {
+                        const imgData = ctx.getImageData(0, 0, w, h).data;
+                        let str = "";
+                        for (let y = 0; y < h; y++) {
+                            for (let x = 0; x < w; x++) {
+                                const i = x * 4 + y * 4 * w;
+                                const [r, g, b, a] = [
+                                    imgData[i],
+                                    imgData[i + 1],
+                                    imgData[i + 2],
+                                    imgData[i + 3],
+                                ];
+                                if (a === 0) {
+                                    str += " ";
+                                    continue;
+                                }
+                                let gray = (0.3 * r + 0.6 * g + 0.1 * b) / 255;
+                                let idx = Math.floor(
+                                    (1 - gray) * (this.charset.length - 1),
+                                );
+                                if (this.invert)
+                                    idx = this.charset.length - idx - 1;
+                                str += this.charset[idx];
+                            }
+                            str += "\n";
+                        }
+                        this.pre.innerHTML = str;
+                    }
+                }
+
+                dispose() {
+                    document.removeEventListener("mousemove", this.onMouseMove);
+                }
+            }
+
+            class CanvasTxt {
+                constructor(
+                    txt,
+                    {
+                        fontSize = 200,
+                        fontFamily = "Arial",
+                        color = "#fdf9f3",
+                    } = {},
+                ) {
+                    this.canvas = document.createElement("canvas");
+                    this.context = this.canvas.getContext("2d");
+                    this.txt = txt;
+                    this.fontSize = fontSize;
+                    this.fontFamily = fontFamily;
+                    this.color = color;
+                    this.font = `600 ${this.fontSize}px ${this.fontFamily}`;
+                }
+
+                resize() {
+                    this.context.font = this.font;
+                    const metrics = this.context.measureText(this.txt);
+                    const textWidth = Math.ceil(metrics.width) + 20;
+                    const textHeight =
+                        Math.ceil(
+                            metrics.actualBoundingBoxAscent +
+                                metrics.actualBoundingBoxDescent,
+                        ) + 20;
+                    this.canvas.width = textWidth;
+                    this.canvas.height = textHeight;
+                }
+
+                render() {
+                    this.context.clearRect(
+                        0,
+                        0,
+                        this.canvas.width,
+                        this.canvas.height,
+                    );
+                    this.context.fillStyle = this.color;
+                    this.context.font = this.font;
+                    const metrics = this.context.measureText(this.txt);
+                    const yPos = 10 + metrics.actualBoundingBoxAscent;
+                    this.context.fillText(this.txt, 10, yPos);
+                }
+
+                get width() {
+                    return this.canvas.width;
+                }
+                get height() {
+                    return this.canvas.height;
+                }
+                get texture() {
+                    return this.canvas;
+                }
+            }
+
+            function initAsciiIntro() {
+                const container = document.getElementById("ascii-container");
+                const { width, height } = container.getBoundingClientRect();
+                if (!width || !height) return () => {};
+
+                const textString = "Click here";
+                const asciiFontSize = 10;
+                const textFontSize = 150;
+                const textColor = "#fdf9f3";
+                const planeBaseHeight = 6;
+                const enableWaves = true;
+
+                const vertexShader = `
         varying vec2 vUv;
         uniform float uTime;
         uniform float mouse;
@@ -923,7 +1653,7 @@
         }
       `;
 
-      const fragmentShader = `
+                const fragmentShader = `
         varying vec2 vUv;
         uniform float mouse;
         uniform float uTime;
@@ -940,606 +1670,938 @@
         }
       `;
 
-      // Scene setup
-      const camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
-      camera.position.z = 35;
-      const scene = new THREE.Scene();
-      let mouse = { x: width / 2, y: height / 2 };
+                // Scene setup
+                const camera = new THREE.PerspectiveCamera(
+                    45,
+                    width / height,
+                    1,
+                    1000,
+                );
+                camera.position.z = 35;
+                const scene = new THREE.Scene();
+                let mouse = { x: width / 2, y: height / 2 };
 
-      // Text canvas
-      const textCanvas = new CanvasTxt(textString, {
-        fontSize: textFontSize,
-        fontFamily: 'IBM Plex Mono',
-        color: textColor
-      });
-      textCanvas.resize();
-      textCanvas.render();
+                // Text canvas
+                const textCanvas = new CanvasTxt(textString, {
+                    fontSize: textFontSize,
+                    fontFamily: "IBM Plex Mono",
+                    color: textColor,
+                });
+                textCanvas.resize();
+                textCanvas.render();
 
-      const texture = new THREE.CanvasTexture(textCanvas.texture);
-      texture.minFilter = THREE.NearestFilter;
+                const texture = new THREE.CanvasTexture(textCanvas.texture);
+                texture.minFilter = THREE.NearestFilter;
 
-      const textAspect = textCanvas.width / textCanvas.height;
-      const planeW = planeBaseHeight * textAspect;
-      const planeH = planeBaseHeight;
+                const textAspect = textCanvas.width / textCanvas.height;
+                const planeW = planeBaseHeight * textAspect;
+                const planeH = planeBaseHeight;
 
-      const geometry = new THREE.PlaneGeometry(planeW, planeH, 36, 36);
-      const material = new THREE.ShaderMaterial({
-        vertexShader,
-        fragmentShader,
-        transparent: true,
-        uniforms: {
-          uTime: { value: 0 },
-          mouse: { value: 1.0 },
-          uTexture: { value: texture },
-          uEnableWaves: { value: enableWaves ? 1.0 : 0.0 }
-        }
-      });
+                const geometry = new THREE.PlaneGeometry(
+                    planeW,
+                    planeH,
+                    36,
+                    36,
+                );
+                const material = new THREE.ShaderMaterial({
+                    vertexShader,
+                    fragmentShader,
+                    transparent: true,
+                    uniforms: {
+                        uTime: { value: 0 },
+                        mouse: { value: 1.0 },
+                        uTexture: { value: texture },
+                        uEnableWaves: { value: enableWaves ? 1.0 : 0.0 },
+                    },
+                });
 
-      const mesh = new THREE.Mesh(geometry, material);
-      scene.add(mesh);
+                const mesh = new THREE.Mesh(geometry, material);
+                scene.add(mesh);
 
-      // Renderer + ASCII filter
-      const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
-      renderer.setPixelRatio(1);
-      renderer.setClearColor(0x000000, 0);
+                // Renderer + ASCII filter
+                const renderer = new THREE.WebGLRenderer({
+                    antialias: false,
+                    alpha: true,
+                });
+                renderer.setPixelRatio(1);
+                renderer.setClearColor(0x000000, 0);
 
-      const filter = new AsciiFilter(renderer, {
-        fontFamily: 'IBM Plex Mono',
-        fontSize: asciiFontSize,
-        invert: true
-      });
+                const filter = new AsciiFilter(renderer, {
+                    fontFamily: "IBM Plex Mono",
+                    fontSize: asciiFontSize,
+                    invert: true,
+                });
 
-      container.appendChild(filter.domElement);
-      filter.setSize(width, height);
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
+                container.appendChild(filter.domElement);
+                filter.setSize(width, height);
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
 
-      const center = { x: width / 2, y: height / 2 };
+                const center = { x: width / 2, y: height / 2 };
 
-      // Mouse tracking
-      function onMouseMove(evt) {
-        const e = evt.touches ? evt.touches[0] : evt;
-        const bounds = container.getBoundingClientRect();
-        mouse = { x: e.clientX - bounds.left, y: e.clientY - bounds.top };
-      }
-      container.addEventListener('mousemove', onMouseMove);
-      container.addEventListener('touchmove', onMouseMove);
+                // Mouse tracking
+                function onMouseMove(evt) {
+                    const e = evt.touches ? evt.touches[0] : evt;
+                    const bounds = container.getBoundingClientRect();
+                    mouse = {
+                        x: e.clientX - bounds.left,
+                        y: e.clientY - bounds.top,
+                    };
+                }
+                container.addEventListener("mousemove", onMouseMove);
+                container.addEventListener("touchmove", onMouseMove);
 
-      // Animation loop
-      let animId;
-      function animate() {
-        animId = requestAnimationFrame(animate);
+                // Animation loop
+                let animId;
+                function animate() {
+                    animId = requestAnimationFrame(animate);
 
-        const time = new Date().getTime() * 0.001;
-        textCanvas.render();
-        texture.needsUpdate = true;
-        material.uniforms.uTime.value = Math.sin(time);
+                    const time = new Date().getTime() * 0.001;
+                    textCanvas.render();
+                    texture.needsUpdate = true;
+                    material.uniforms.uTime.value = Math.sin(time);
 
-        // Mouse-reactive rotation
-        const rx = Math.map(mouse.y, 0, height, 0.5, -0.5);
-        const ry = Math.map(mouse.x, 0, width, -0.5, 0.5);
-        mesh.rotation.x += (rx - mesh.rotation.x) * 0.05;
-        mesh.rotation.y += (ry - mesh.rotation.y) * 0.05;
+                    // Mouse-reactive rotation
+                    const rx = Math.map(mouse.y, 0, height, 0.5, -0.5);
+                    const ry = Math.map(mouse.x, 0, width, -0.5, 0.5);
+                    mesh.rotation.x += (rx - mesh.rotation.x) * 0.05;
+                    mesh.rotation.y += (ry - mesh.rotation.y) * 0.05;
 
-        filter.render(scene, camera);
-      }
-      animate();
+                    filter.render(scene, camera);
+                }
+                animate();
 
-      // Resize handler
-      function onResize() {
-        const { width: w, height: h } = container.getBoundingClientRect();
-        if (w > 0 && h > 0) {
-          camera.aspect = w / h;
-          camera.updateProjectionMatrix();
-          filter.setSize(w, h);
-        }
-      }
-      window.addEventListener('resize', onResize);
+                // Resize handler
+                function onResize() {
+                    const { width: w, height: h } =
+                        container.getBoundingClientRect();
+                    if (w > 0 && h > 0) {
+                        camera.aspect = w / h;
+                        camera.updateProjectionMatrix();
+                        filter.setSize(w, h);
+                    }
+                }
+                window.addEventListener("resize", onResize);
 
-      // Cleanup function
-      return function cleanup() {
-        cancelAnimationFrame(animId);
-        window.removeEventListener('resize', onResize);
-        container.removeEventListener('mousemove', onMouseMove);
-        container.removeEventListener('touchmove', onMouseMove);
-        filter.dispose();
-        if (filter.domElement.parentNode) container.removeChild(filter.domElement);
-        renderer.dispose();
-        geometry.dispose();
-        material.dispose();
-        texture.dispose();
-      };
-    }
-
-    // ============================================================
-    //  CIRCLE TRANSITION
-    // ============================================================
-    function playCircleTransition(cb) {
-      const intro = document.getElementById('intro-screen');
-      const main = document.getElementById('main-page');
-      intro.style.transition = 'opacity 0.35s';
-      intro.style.opacity = '0';
-      setTimeout(() => {
-        intro.style.display = 'none';
-        main.style.display = 'block';
-        main.style.clipPath = 'circle(0% at 50% 50%)';
-        main.style.opacity = '1';
-        let p = 0;
-        (function expand() {
-          p += 2.2;
-          if (p >= 105) { main.style.clipPath = 'none'; cb && cb(); return; }
-          main.style.clipPath = `circle(${p}% at 50% 50%)`;
-          requestAnimationFrame(expand);
-        })();
-      }, 350);
-    }
-
-    // ============================================================
-    //  3D MINECRAFT HEAD
-    // ============================================================
-    function init3DHead() {
-      const el = document.getElementById('head-canvas');
-      const scene = new THREE.Scene();
-      const cam = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-      cam.position.z = 3;
-
-      const ren = new THREE.WebGLRenderer({ canvas: el, alpha: true, antialias: true });
-      ren.setSize(180, 180);
-      ren.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      ren.setClearColor(0x000000, 0);
-
-      scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
-      dirLight.position.set(2, 3, 4);
-      scene.add(dirLight);
-      const backLight = new THREE.DirectionalLight(0x87CEEB, 0.25);
-      backLight.position.set(-2, -1, -3);
-      scene.add(backLight);
-
-      const group = new THREE.Group();
-      scene.add(group);
-
-      function extractFace(skinCanvas, sx, sy, sw, sh) {
-        const c = document.createElement('canvas');
-        c.width = sw; c.height = sh;
-        c.getContext('2d').drawImage(skinCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
-        const t = new THREE.CanvasTexture(c);
-        t.magFilter = THREE.NearestFilter;
-        t.minFilter = THREE.NearestFilter;
-        return t;
-      }
-
-      function buildHead(skinCanvas, is64) {
-        const ef = (sx, sy, sw, sh) => extractFace(skinCanvas, sx, sy, sw, sh);
-        const inner = [
-          new THREE.MeshLambertMaterial({ map: ef(16, 8, 8, 8) }),
-          new THREE.MeshLambertMaterial({ map: ef(0, 8, 8, 8) }),
-          new THREE.MeshLambertMaterial({ map: ef(8, 0, 8, 8) }),
-          new THREE.MeshLambertMaterial({ map: ef(16, 0, 8, 8) }),
-          new THREE.MeshLambertMaterial({ map: ef(8, 8, 8, 8) }),
-          new THREE.MeshLambertMaterial({ map: ef(24, 8, 8, 8) })
-        ];
-        group.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), inner));
-
-        if (is64) {
-          const hat = [
-            new THREE.MeshLambertMaterial({ map: ef(48, 8, 8, 8), transparent: true, alphaTest: 0.05 }),
-            new THREE.MeshLambertMaterial({ map: ef(32, 8, 8, 8), transparent: true, alphaTest: 0.05 }),
-            new THREE.MeshLambertMaterial({ map: ef(40, 0, 8, 8), transparent: true, alphaTest: 0.05 }),
-            new THREE.MeshLambertMaterial({ map: ef(48, 0, 8, 8), transparent: true, alphaTest: 0.05 }),
-            new THREE.MeshLambertMaterial({ map: ef(40, 8, 8, 8), transparent: true, alphaTest: 0.05 }),
-            new THREE.MeshLambertMaterial({ map: ef(56, 8, 8, 8), transparent: true, alphaTest: 0.05 })
-          ];
-          group.add(new THREE.Mesh(new THREE.BoxGeometry(1.13, 1.13, 1.13), hat));
-        }
-      }
-
-      // Build a default Steve head immediately so something always shows
-      function buildDefaultHead() {
-        const c = document.createElement('canvas');
-        c.width = 64; c.height = 64;
-        const ctx = c.getContext('2d');
-        // Draw a simple Steve-like head
-        // Skin base
-        ctx.fillStyle = '#c4935a'; ctx.fillRect(0, 0, 64, 64);
-        // Head front (8,8 - 16,16) — face
-        ctx.fillStyle = '#c4935a'; ctx.fillRect(8, 8, 8, 8);
-        // Eyes
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(10, 11, 2, 1); ctx.fillRect(14, 11, 2, 1);
-        ctx.fillStyle = '#4b3422'; ctx.fillRect(11, 11, 1, 1); ctx.fillRect(14, 11, 1, 1);
-        // Mouth
-        ctx.fillStyle = '#8b6040'; ctx.fillRect(11, 14, 2, 1);
-        // Hair (top: 8,0)
-        ctx.fillStyle = '#3d2517'; ctx.fillRect(8, 0, 8, 8);
-        // Sides hair
-        ctx.fillRect(0, 8, 8, 8);
-        ctx.fillRect(16, 8, 8, 8);
-        ctx.fillRect(24, 8, 8, 8);
-        ctx.fillRect(16, 0, 8, 8);
-        buildHead(c, false);
-      }
-
-      // Try loading the real skin from multiple APIs
-      const SKIN_URLS = [
-        'https://minotar.net/skin/az_ttv',
-        'https://crafatar.com/skins/az_ttv?overlay',
-        'https://mc-heads.net/skin/az_ttv'
-      ];
-
-      let skinLoaded = false;
-
-      // Show default head immediately
-      buildDefaultHead();
-
-      function tryLoadSkin(index) {
-        if (index >= SKIN_URLS.length || skinLoaded) return;
-
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-
-        img.onload = function () {
-          if (skinLoaded) return;
-          skinLoaded = true;
-
-          const c = document.createElement('canvas');
-          c.width = img.naturalWidth;
-          c.height = img.naturalHeight;
-          c.getContext('2d').drawImage(img, 0, 0);
-
-          // Remove default head meshes and rebuild with real skin
-          while (group.children.length > 0) group.remove(group.children[0]);
-          buildHead(c, img.naturalHeight === 64);
-        };
-
-        img.onerror = function () {
-          tryLoadSkin(index + 1);
-        };
-
-        img.src = SKIN_URLS[index];
-      }
-
-      tryLoadSkin(0);
-
-      // --- Cursor tracking (desktop) / Auto-spin (mobile) ---
-      const isMobileDevice = () => window.matchMedia('(max-width: 768px)').matches;
-
-      // Target rotation for smooth interpolation
-      let targetRotY = 0, targetRotX = 0;
-      let currentRotY = 0, currentRotX = 0;
-
-      // Track mouse position globally for desktop look-at
-      window.addEventListener('mousemove', e => {
-        if (isMobileDevice()) return;
-        const rect = el.getBoundingClientRect();
-        const headCenterX = rect.left + rect.width / 2;
-        const headCenterY = rect.top + rect.height / 2;
-
-        // Normalize cursor offset from head center to -1..1 range based on viewport
-        const dx = (e.clientX - headCenterX) / (window.innerWidth * 0.5);
-        const dy = (e.clientY - headCenterY) / (window.innerHeight * 0.5);
-
-        // Clamp and map to rotation range (max ~45 degrees each way)
-        targetRotY = Math.max(-1, Math.min(1, dx)) * 0.75;
-        targetRotX = Math.max(-1, Math.min(1, dy)) * 0.4;
-      });
-
-      (function animate() {
-        requestAnimationFrame(animate);
-
-        if (isMobileDevice()) {
-          // Mobile: gentle auto-spin
-          group.rotation.y += 0.004;
-          group.rotation.x = Math.sin(Date.now() * 0.001) * 0.08;
-        } else {
-          // Desktop: smoothly interpolate toward cursor target
-          currentRotY += (targetRotY - currentRotY) * 0.06;
-          currentRotX += (targetRotX - currentRotX) * 0.06;
-          group.rotation.y = currentRotY;
-          group.rotation.x = currentRotX;
-        }
-
-        // Subtle floating bob
-        group.position.y = Math.sin(Date.now() * 0.0012) * 0.04;
-        ren.render(scene, cam);
-      })();
-    }
-
-    // ============================================================
-    //  ORBIT POSITIONING + FLOATING IDLE
-    // ============================================================
-    function initOrbitButtons() {
-      const btns = document.querySelectorAll('.cloud-btn');
-      const count = btns.length;
-      const radius = 240; // px from center of head
-      const startAngle = -90; // top
-
-      btns.forEach((btn, i) => {
-        const angle = startAngle + (i / count) * 360;
-        const rad = angle * Math.PI / 180;
-        const x = Math.cos(rad) * radius;
-        const y = Math.sin(rad) * radius;
-
-        btn.style.left = `calc(50% + ${x.toFixed(1)}px)`;
-        btn.style.top = `calc(50% + ${y.toFixed(1)}px)`;
-      });
-    }
-
-    // Floating idle animation applied after reveal
-    function startFloatingIdle() {
-      const btns = document.querySelectorAll('.cloud-btn');
-      btns.forEach((btn, i) => {
-        const duration = 4 + (i % 3) * 0.8; // 4s, 4.8s, 5.6s — slower
-        const delay = i * 0.5;
-        const amplitude = 3 + (i % 4); // 3-6px — much gentler
-
-        let startTime = performance.now() + delay * 1000;
-        function float(now) {
-          const elapsed = (now - startTime) / 1000;
-          const yOff = Math.sin(elapsed * (2 * Math.PI / duration)) * amplitude;
-          const xOff = Math.cos(elapsed * (2 * Math.PI / (duration * 1.4))) * (amplitude * 0.3);
-          if (!btn.matches(':hover')) {
-            btn.style.marginTop = yOff + 'px';
-            btn.style.marginLeft = xOff + 'px';
-          }
-          btn._floatId = requestAnimationFrame(float);
-        }
-        btn._floatId = requestAnimationFrame(float);
-      });
-    }
-
-    // ============================================================
-    //  PARTICLES
-    // ============================================================
-    function createParticles() {
-      const c = document.getElementById('particles');
-      for (let i = 0; i < 20; i++) {
-        const p = document.createElement('div');
-        p.className = 'particle';
-        p.style.left = Math.random() * 100 + 'vw';
-        const s = 2 + Math.random() * 4;
-        p.style.width = s + 'px'; p.style.height = s + 'px';
-        p.style.animationDuration = (10 + Math.random() * 18) + 's';
-        p.style.animationDelay = (-Math.random() * 20) + 's';
-        c.appendChild(p);
-      }
-    }
-
-    // ============================================================
-    //  REVEAL
-    // ============================================================
-    const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-
-    function revealMainContent() {
-      if (!isMobile()) {
-        initOrbitButtons();
-      }
-
-      setTimeout(() => {
-        document.getElementById('nametag').classList.add('visible');
-        document.getElementById('head-container').classList.add('visible');
-      }, 200);
-
-      document.querySelectorAll('.cloud-btn').forEach(btn => {
-        const idx = parseInt(btn.dataset.index) || 0;
-        setTimeout(() => btn.classList.add('visible'), idx * 130 + 650);
-      });
-
-      // Start floating after all buttons have appeared (desktop only)
-      if (!isMobile()) {
-        setTimeout(() => startFloatingIdle(), 1800);
-      }
-
-      setTimeout(() => {
-        document.getElementById('mute-btn').style.display = 'flex';
-        document.getElementById('about-btn').style.display = 'flex';
-        const songInfo = document.getElementById('song-info');
-        songInfo.style.display = 'flex';
-        requestAnimationFrame(() => songInfo.classList.add('visible'));
-      }, 500);
-    }
-
-    // ============================================================
-    //  MUSIC
-    // ============================================================
-    let muted = false;
-    const music = document.getElementById('bg-music');
-    music.volume = 0.3;
-    document.getElementById('mute-btn').addEventListener('click', () => {
-      muted = !muted;
-      music.muted = muted;
-      document.getElementById('icon-unmuted').style.display = muted ? 'none' : 'block';
-      document.getElementById('icon-muted').style.display = muted ? 'block' : 'none';
-    });
-
-    // ============================================================
-    //  ABOUT
-    // ============================================================
-    document.getElementById('about-btn').addEventListener('click', () => {
-      const o = document.getElementById('about-overlay');
-      o.style.display = 'flex';
-      requestAnimationFrame(() => o.classList.add('visible'));
-    });
-    function closeAbout() {
-      const o = document.getElementById('about-overlay');
-      o.classList.remove('visible');
-      setTimeout(() => o.style.display = 'none', 400);
-    }
-    document.getElementById('about-close').addEventListener('click', closeAbout);
-    document.getElementById('about-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeAbout(); });
-
-    // Language tabs + Decrypt animation (ported from ReactBits DecryptedText)
-    const DECRYPT_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÀÉÈÊàéèê!@#$%^&*()_+';
-    const DECRYPT_SPEED = 30;
-
-    // Animate a single element: scramble → sequential reveal
-    function decryptElement(el, targetText, originalHTML, speed = DECRYPT_SPEED) {
-      return new Promise(resolve => {
-        const len = targetText.length;
-        const revealed = new Set();
-        let revealIndex = 0;
-
-        // Build initial scrambled text
-        function buildText() {
-          return targetText.split('').map((ch, i) => {
-            if (ch === ' ' || ch === '\n') return ch;
-            if (revealed.has(i)) return targetText[i];
-            return DECRYPT_CHARS[Math.floor(Math.random() * DECRYPT_CHARS.length)];
-          }).join('');
-        }
-
-        // Render with spans: revealed chars normal, encrypted chars styled
-        function render() {
-          const chars = targetText.split('').map((ch, i) => {
-            if (ch === ' ') return ' ';
-            if (revealed.has(i)) {
-              return `<span class="decrypt-char">${ch}</span>`;
+                // Cleanup function
+                return function cleanup() {
+                    cancelAnimationFrame(animId);
+                    window.removeEventListener("resize", onResize);
+                    container.removeEventListener("mousemove", onMouseMove);
+                    container.removeEventListener("touchmove", onMouseMove);
+                    filter.dispose();
+                    if (filter.domElement.parentNode)
+                        container.removeChild(filter.domElement);
+                    renderer.dispose();
+                    geometry.dispose();
+                    material.dispose();
+                    texture.dispose();
+                };
             }
-            const rnd = DECRYPT_CHARS[Math.floor(Math.random() * DECRYPT_CHARS.length)];
-            return `<span class="decrypt-char encrypted">${rnd}</span>`;
-          });
-          el.innerHTML = chars.join('');
-        }
 
-        // Start fully scrambled
-        render();
-
-        const interval = setInterval(() => {
-          // Reveal next 1-2 characters per tick
-          if (revealIndex < len) {
-            // Skip spaces
-            while (revealIndex < len && targetText[revealIndex] === ' ') {
-              revealed.add(revealIndex);
-              revealIndex++;
+            // ============================================================
+            //  CIRCLE TRANSITION
+            // ============================================================
+            function playCircleTransition(cb) {
+                const intro = document.getElementById("intro-screen");
+                const main = document.getElementById("main-page");
+                intro.style.transition = "opacity 0.35s";
+                intro.style.opacity = "0";
+                setTimeout(() => {
+                    intro.style.display = "none";
+                    main.style.display = "block";
+                    main.style.clipPath = "circle(0% at 50% 50%)";
+                    main.style.opacity = "1";
+                    let p = 0;
+                    (function expand() {
+                        p += 2.2;
+                        if (p >= 105) {
+                            main.style.clipPath = "none";
+                            cb && cb();
+                            return;
+                        }
+                        main.style.clipPath = `circle(${p}% at 50% 50%)`;
+                        requestAnimationFrame(expand);
+                    })();
+                }, 350);
             }
-            revealed.add(revealIndex);
-            revealIndex++;
-            // Reveal a second char for faster feel
-            if (revealIndex < len) {
-              while (revealIndex < len && targetText[revealIndex] === ' ') {
-                revealed.add(revealIndex);
-                revealIndex++;
-              }
-              revealed.add(revealIndex);
-              revealIndex++;
+
+            // ============================================================
+            //  3D MINECRAFT HEAD
+            // ============================================================
+            function init3DHead() {
+                const el = document.getElementById("head-canvas");
+                const scene = new THREE.Scene();
+                const cam = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+                cam.position.z = 3;
+
+                const ren = new THREE.WebGLRenderer({
+                    canvas: el,
+                    alpha: true,
+                    antialias: true,
+                });
+                ren.setSize(180, 180);
+                ren.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                ren.setClearColor(0x000000, 0);
+
+                scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+                const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+                dirLight.position.set(2, 3, 4);
+                scene.add(dirLight);
+                const backLight = new THREE.DirectionalLight(0x87ceeb, 0.25);
+                backLight.position.set(-2, -1, -3);
+                scene.add(backLight);
+
+                const group = new THREE.Group();
+                scene.add(group);
+
+                function extractFace(skinCanvas, sx, sy, sw, sh) {
+                    const c = document.createElement("canvas");
+                    c.width = sw;
+                    c.height = sh;
+                    c.getContext("2d").drawImage(
+                        skinCanvas,
+                        sx,
+                        sy,
+                        sw,
+                        sh,
+                        0,
+                        0,
+                        sw,
+                        sh,
+                    );
+                    const t = new THREE.CanvasTexture(c);
+                    t.magFilter = THREE.NearestFilter;
+                    t.minFilter = THREE.NearestFilter;
+                    return t;
+                }
+
+                function buildHead(skinCanvas, is64) {
+                    const ef = (sx, sy, sw, sh) =>
+                        extractFace(skinCanvas, sx, sy, sw, sh);
+                    const inner = [
+                        new THREE.MeshLambertMaterial({ map: ef(16, 8, 8, 8) }),
+                        new THREE.MeshLambertMaterial({ map: ef(0, 8, 8, 8) }),
+                        new THREE.MeshLambertMaterial({ map: ef(8, 0, 8, 8) }),
+                        new THREE.MeshLambertMaterial({ map: ef(16, 0, 8, 8) }),
+                        new THREE.MeshLambertMaterial({ map: ef(8, 8, 8, 8) }),
+                        new THREE.MeshLambertMaterial({ map: ef(24, 8, 8, 8) }),
+                    ];
+                    group.add(
+                        new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), inner),
+                    );
+
+                    if (is64) {
+                        const hat = [
+                            new THREE.MeshLambertMaterial({
+                                map: ef(48, 8, 8, 8),
+                                transparent: true,
+                                alphaTest: 0.05,
+                            }),
+                            new THREE.MeshLambertMaterial({
+                                map: ef(32, 8, 8, 8),
+                                transparent: true,
+                                alphaTest: 0.05,
+                            }),
+                            new THREE.MeshLambertMaterial({
+                                map: ef(40, 0, 8, 8),
+                                transparent: true,
+                                alphaTest: 0.05,
+                            }),
+                            new THREE.MeshLambertMaterial({
+                                map: ef(48, 0, 8, 8),
+                                transparent: true,
+                                alphaTest: 0.05,
+                            }),
+                            new THREE.MeshLambertMaterial({
+                                map: ef(40, 8, 8, 8),
+                                transparent: true,
+                                alphaTest: 0.05,
+                            }),
+                            new THREE.MeshLambertMaterial({
+                                map: ef(56, 8, 8, 8),
+                                transparent: true,
+                                alphaTest: 0.05,
+                            }),
+                        ];
+                        group.add(
+                            new THREE.Mesh(
+                                new THREE.BoxGeometry(1.13, 1.13, 1.13),
+                                hat,
+                            ),
+                        );
+                    }
+                }
+
+                // Build a default Steve head immediately so something always shows
+                function buildDefaultHead() {
+                    const c = document.createElement("canvas");
+                    c.width = 64;
+                    c.height = 64;
+                    const ctx = c.getContext("2d");
+                    // Draw a simple Steve-like head
+                    // Skin base
+                    ctx.fillStyle = "#c4935a";
+                    ctx.fillRect(0, 0, 64, 64);
+                    // Head front (8,8 - 16,16) — face
+                    ctx.fillStyle = "#c4935a";
+                    ctx.fillRect(8, 8, 8, 8);
+                    // Eyes
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(10, 11, 2, 1);
+                    ctx.fillRect(14, 11, 2, 1);
+                    ctx.fillStyle = "#4b3422";
+                    ctx.fillRect(11, 11, 1, 1);
+                    ctx.fillRect(14, 11, 1, 1);
+                    // Mouth
+                    ctx.fillStyle = "#8b6040";
+                    ctx.fillRect(11, 14, 2, 1);
+                    // Hair (top: 8,0)
+                    ctx.fillStyle = "#3d2517";
+                    ctx.fillRect(8, 0, 8, 8);
+                    // Sides hair
+                    ctx.fillRect(0, 8, 8, 8);
+                    ctx.fillRect(16, 8, 8, 8);
+                    ctx.fillRect(24, 8, 8, 8);
+                    ctx.fillRect(16, 0, 8, 8);
+                    buildHead(c, false);
+                }
+
+                // Try loading the real skin from multiple APIs
+                const SKIN_URLS = [
+                    "https://minotar.net/skin/az_ttv",
+                    "https://crafatar.com/skins/az_ttv?overlay",
+                    "https://mc-heads.net/skin/az_ttv",
+                ];
+
+                let skinLoaded = false;
+
+                // Show default head immediately
+                buildDefaultHead();
+
+                function tryLoadSkin(index) {
+                    if (index >= SKIN_URLS.length || skinLoaded) return;
+
+                    const img = new Image();
+                    img.crossOrigin = "anonymous";
+
+                    img.onload = function () {
+                        if (skinLoaded) return;
+                        skinLoaded = true;
+
+                        const c = document.createElement("canvas");
+                        c.width = img.naturalWidth;
+                        c.height = img.naturalHeight;
+                        c.getContext("2d").drawImage(img, 0, 0);
+
+                        // Remove default head meshes and rebuild with real skin
+                        while (group.children.length > 0)
+                            group.remove(group.children[0]);
+                        buildHead(c, img.naturalHeight === 64);
+                    };
+
+                    img.onerror = function () {
+                        tryLoadSkin(index + 1);
+                    };
+
+                    img.src = SKIN_URLS[index];
+                }
+
+                tryLoadSkin(0);
+
+                // --- Cursor tracking (desktop) / Auto-spin (mobile) ---
+                const isMobileDevice = () =>
+                    window.matchMedia("(max-width: 768px)").matches;
+
+                // Target rotation for smooth interpolation
+                let targetRotY = 0,
+                    targetRotX = 0;
+                let currentRotY = 0,
+                    currentRotX = 0;
+
+                // Track mouse position globally for desktop look-at
+                window.addEventListener("mousemove", (e) => {
+                    if (isMobileDevice()) return;
+                    const rect = el.getBoundingClientRect();
+                    const headCenterX = rect.left + rect.width / 2;
+                    const headCenterY = rect.top + rect.height / 2;
+
+                    // Normalize cursor offset from head center to -1..1 range based on viewport
+                    const dx =
+                        (e.clientX - headCenterX) / (window.innerWidth * 0.5);
+                    const dy =
+                        (e.clientY - headCenterY) / (window.innerHeight * 0.5);
+
+                    // Clamp and map to rotation range (max ~45 degrees each way)
+                    targetRotY = Math.max(-1, Math.min(1, dx)) * 0.75;
+                    targetRotX = Math.max(-1, Math.min(1, dy)) * 0.4;
+                });
+
+                (function animate() {
+                    requestAnimationFrame(animate);
+
+                    if (isMobileDevice()) {
+                        // Mobile: gentle auto-spin
+                        group.rotation.y += 0.004;
+                        group.rotation.x = Math.sin(Date.now() * 0.001) * 0.08;
+                    } else {
+                        // Desktop: smoothly interpolate toward cursor target
+                        currentRotY += (targetRotY - currentRotY) * 0.06;
+                        currentRotX += (targetRotX - currentRotX) * 0.06;
+                        group.rotation.y = currentRotY;
+                        group.rotation.x = currentRotX;
+                    }
+
+                    // Subtle floating bob
+                    group.position.y = Math.sin(Date.now() * 0.0012) * 0.04;
+                    ren.render(scene, cam);
+                })();
             }
-          }
 
-          render();
+            // ============================================================
+            //  ORBIT POSITIONING + FLOATING IDLE
+            // ============================================================
+            function initOrbitButtons() {
+                const btns = document.querySelectorAll(".cloud-btn");
+                const count = btns.length;
+                const radius = 240; // px from center of head
+                const startAngle = -90; // top
 
-          if (revealIndex >= len) {
-            clearInterval(interval);
-            // Restore original HTML (with <strong> etc.)
-            el.innerHTML = originalHTML;
-            resolve();
-          }
-        }, speed);
-      });
-    }
+                btns.forEach((btn, i) => {
+                    const angle = startAngle + (i / count) * 360;
+                    const rad = (angle * Math.PI) / 180;
+                    const x = Math.cos(rad) * radius;
+                    const y = Math.sin(rad) * radius;
 
-    // Animate the title
-    function decryptTitle(el, targetText, speed = 35) {
-      return new Promise(resolve => {
-        const len = targetText.length;
-        const revealed = new Set();
-        let revealIndex = 0;
-
-        function render() {
-          const chars = targetText.split('').map((ch, i) => {
-            if (ch === ' ') return ' ';
-            if (revealed.has(i)) return `<span class="decrypt-char">${ch}</span>`;
-            const rnd = DECRYPT_CHARS[Math.floor(Math.random() * DECRYPT_CHARS.length)];
-            return `<span class="decrypt-char encrypted">${rnd}</span>`;
-          });
-          el.innerHTML = chars.join('');
-        }
-
-        render();
-
-        const interval = setInterval(() => {
-          if (revealIndex < len) {
-            while (revealIndex < len && targetText[revealIndex] === ' ') {
-              revealed.add(revealIndex);
-              revealIndex++;
+                    btn.style.left = `calc(50% + ${x.toFixed(1)}px)`;
+                    btn.style.top = `calc(50% + ${y.toFixed(1)}px)`;
+                });
             }
-            revealed.add(revealIndex);
-            revealIndex++;
-          }
-          render();
-          if (revealIndex >= len) {
-            clearInterval(interval);
-            el.textContent = targetText;
-            resolve();
-          }
-        }, speed);
-      });
-    }
 
-    const langTitles = { fr: 'À Propos', en: 'About Me' };
-    let decryptRunning = false;
+            // Floating idle animation applied after reveal
+            function startFloatingIdle() {
+                const btns = document.querySelectorAll(".cloud-btn");
+                btns.forEach((btn, i) => {
+                    const duration = 4 + (i % 3) * 0.8; // 4s, 4.8s, 5.6s — slower
+                    const delay = i * 0.5;
+                    const amplitude = 3 + (i % 4); // 3-6px — much gentler
 
-    document.querySelectorAll('.lang-tab').forEach(tab => {
-      tab.addEventListener('click', async () => {
-        if (decryptRunning) return;
-        const lang = tab.dataset.lang;
-        if (tab.classList.contains('active')) return;
+                    let startTime = performance.now() + delay * 1000;
+                    function float(now) {
+                        const elapsed = (now - startTime) / 1000;
+                        const yOff =
+                            Math.sin(elapsed * ((2 * Math.PI) / duration)) *
+                            amplitude;
+                        const xOff =
+                            Math.cos(
+                                elapsed * ((2 * Math.PI) / (duration * 1.4)),
+                            ) *
+                            (amplitude * 0.3);
+                        if (!btn.matches(":hover")) {
+                            btn.style.marginTop = yOff + "px";
+                            btn.style.marginLeft = xOff + "px";
+                        }
+                        btn._floatId = requestAnimationFrame(float);
+                    }
+                    btn._floatId = requestAnimationFrame(float);
+                });
+            }
 
-        decryptRunning = true;
+            // ============================================================
+            //  PARTICLES
+            // ============================================================
+            function createParticles() {
+                const c = document.getElementById("particles");
+                for (let i = 0; i < 20; i++) {
+                    const p = document.createElement("div");
+                    p.className = "particle";
+                    p.style.left = Math.random() * 100 + "vw";
+                    const s = 2 + Math.random() * 4;
+                    p.style.width = s + "px";
+                    p.style.height = s + "px";
+                    p.style.animationDuration = 10 + Math.random() * 18 + "s";
+                    p.style.animationDelay = -Math.random() * 20 + "s";
+                    c.appendChild(p);
+                }
+            }
 
-        // Switch tab styles
-        document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
+            // ============================================================
+            //  REVEAL
+            // ============================================================
+            const isMobile = () =>
+                window.matchMedia("(max-width: 768px)").matches;
 
-        // Switch content visibility
-        document.querySelectorAll('.about-lang-content').forEach(c => c.classList.remove('active'));
-        const newContent = document.querySelector(`.about-lang-content[data-lang="${lang}"]`);
-        newContent.classList.add('active');
+            function revealMainContent() {
+                if (!isMobile()) {
+                    initOrbitButtons();
+                }
 
-        // Animate title
-        const titleEl = document.getElementById('about-title');
-        const titleTarget = langTitles[lang];
+                setTimeout(() => {
+                    document.getElementById("nametag").classList.add("visible");
+                    document
+                        .getElementById("head-container")
+                        .classList.add("visible");
+                }, 200);
 
-        // Gather paragraphs and their target text + original HTML
-        const paragraphs = newContent.querySelectorAll('p');
-        const pData = Array.from(paragraphs).map(p => ({
-          el: p,
-          text: p.textContent,
-          html: p.innerHTML
-        }));
+                document.querySelectorAll(".cloud-btn").forEach((btn) => {
+                    const idx = parseInt(btn.dataset.index) || 0;
+                    setTimeout(
+                        () => btn.classList.add("visible"),
+                        idx * 130 + 650,
+                    );
+                });
 
-        // Run decrypt on title and all paragraphs together
-        const promises = [decryptTitle(titleEl, titleTarget, 40)];
-        pData.forEach((d, i) => {
-          promises.push(decryptElement(d.el, d.text, d.html, DECRYPT_SPEED));
-        });
+                // Start floating after all buttons have appeared (desktop only)
+                if (!isMobile()) {
+                    setTimeout(() => startFloatingIdle(), 1800);
+                }
 
-        await Promise.all(promises);
-        decryptRunning = false;
-      });
-    });
+                setTimeout(() => {
+                    document.getElementById("mute-btn").style.display = "flex";
+                    document.getElementById("about-btn").style.display = "flex";
+                    const songInfo = document.getElementById("song-info");
+                    songInfo.style.display = "flex";
+                    requestAnimationFrame(() =>
+                        songInfo.classList.add("visible"),
+                    );
+                }, 500);
+            }
 
-    // ============================================================
-    //  BOOT
-    // ============================================================
-    let introCleanup = null;
-    window.addEventListener('load', async () => {
-      if (!isMobile()) {
-        try {
-          await document.fonts.load('600 200px "IBM Plex Mono"');
-          await document.fonts.load('500 12px "IBM Plex Mono"');
-        } catch (e) {}
-        await document.fonts.ready;
-        introCleanup = initAsciiIntro();
-      }
-    });
-    document.getElementById('intro-screen').addEventListener('click', () => {
-      if (introCleanup) introCleanup();
-      music.play().catch(() => {});
-      playCircleTransition(() => {
-        init3DHead();
-        createParticles();
-        revealMainContent();
-      });
-    });
-  </script>
-</body>
+            // ============================================================
+            //  MUSIC
+            // ============================================================
+            let muted = false;
+            const music = document.getElementById("bg-music");
+            music.volume = 0.3;
+            document
+                .getElementById("mute-btn")
+                .addEventListener("click", () => {
+                    muted = !muted;
+                    music.muted = muted;
+                    document.getElementById("icon-unmuted").style.display =
+                        muted ? "none" : "block";
+                    document.getElementById("icon-muted").style.display = muted
+                        ? "block"
+                        : "none";
+                });
+
+            // ============================================================
+            //  ABOUT
+            // ============================================================
+            document
+                .getElementById("about-btn")
+                .addEventListener("click", () => {
+                    const o = document.getElementById("about-overlay");
+                    o.style.display = "flex";
+                    requestAnimationFrame(() => o.classList.add("visible"));
+                });
+            function closeAbout() {
+                const o = document.getElementById("about-overlay");
+                o.classList.remove("visible");
+                setTimeout(() => (o.style.display = "none"), 400);
+            }
+            document
+                .getElementById("about-close")
+                .addEventListener("click", closeAbout);
+            document
+                .getElementById("about-overlay")
+                .addEventListener("click", (e) => {
+                    if (e.target === e.currentTarget) closeAbout();
+                });
+
+            // Language tabs + Decrypt animation (ported from ReactBits DecryptedText)
+            const DECRYPT_CHARS =
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÀÉÈÊàéèê!@#$%^&*()_+";
+            const DECRYPT_SPEED = 30;
+
+            // Animate a single element: scramble → sequential reveal
+            function decryptElement(
+                el,
+                targetText,
+                originalHTML,
+                speed = DECRYPT_SPEED,
+            ) {
+                return new Promise((resolve) => {
+                    const len = targetText.length;
+                    const revealed = new Set();
+                    let revealIndex = 0;
+
+                    // Build initial scrambled text
+                    function buildText() {
+                        return targetText
+                            .split("")
+                            .map((ch, i) => {
+                                if (ch === " " || ch === "\n") return ch;
+                                if (revealed.has(i)) return targetText[i];
+                                return DECRYPT_CHARS[
+                                    Math.floor(
+                                        Math.random() * DECRYPT_CHARS.length,
+                                    )
+                                ];
+                            })
+                            .join("");
+                    }
+
+                    // Render with spans: revealed chars normal, encrypted chars styled
+                    function render() {
+                        const chars = targetText.split("").map((ch, i) => {
+                            if (ch === " ") return " ";
+                            if (revealed.has(i)) {
+                                return `<span class="decrypt-char">${ch}</span>`;
+                            }
+                            const rnd =
+                                DECRYPT_CHARS[
+                                    Math.floor(
+                                        Math.random() * DECRYPT_CHARS.length,
+                                    )
+                                ];
+                            return `<span class="decrypt-char encrypted">${rnd}</span>`;
+                        });
+                        el.innerHTML = chars.join("");
+                    }
+
+                    // Start fully scrambled
+                    render();
+
+                    const interval = setInterval(() => {
+                        // Reveal next 1-2 characters per tick
+                        if (revealIndex < len) {
+                            // Skip spaces
+                            while (
+                                revealIndex < len &&
+                                targetText[revealIndex] === " "
+                            ) {
+                                revealed.add(revealIndex);
+                                revealIndex++;
+                            }
+                            revealed.add(revealIndex);
+                            revealIndex++;
+                            // Reveal a second char for faster feel
+                            if (revealIndex < len) {
+                                while (
+                                    revealIndex < len &&
+                                    targetText[revealIndex] === " "
+                                ) {
+                                    revealed.add(revealIndex);
+                                    revealIndex++;
+                                }
+                                revealed.add(revealIndex);
+                                revealIndex++;
+                            }
+                        }
+
+                        render();
+
+                        if (revealIndex >= len) {
+                            clearInterval(interval);
+                            // Restore original HTML (with <strong> etc.)
+                            el.innerHTML = originalHTML;
+                            resolve();
+                        }
+                    }, speed);
+                });
+            }
+
+            // Animate the title
+            function decryptTitle(el, targetText, speed = 35) {
+                return new Promise((resolve) => {
+                    const len = targetText.length;
+                    const revealed = new Set();
+                    let revealIndex = 0;
+
+                    function render() {
+                        const chars = targetText.split("").map((ch, i) => {
+                            if (ch === " ") return " ";
+                            if (revealed.has(i))
+                                return `<span class="decrypt-char">${ch}</span>`;
+                            const rnd =
+                                DECRYPT_CHARS[
+                                    Math.floor(
+                                        Math.random() * DECRYPT_CHARS.length,
+                                    )
+                                ];
+                            return `<span class="decrypt-char encrypted">${rnd}</span>`;
+                        });
+                        el.innerHTML = chars.join("");
+                    }
+
+                    render();
+
+                    const interval = setInterval(() => {
+                        if (revealIndex < len) {
+                            while (
+                                revealIndex < len &&
+                                targetText[revealIndex] === " "
+                            ) {
+                                revealed.add(revealIndex);
+                                revealIndex++;
+                            }
+                            revealed.add(revealIndex);
+                            revealIndex++;
+                        }
+                        render();
+                        if (revealIndex >= len) {
+                            clearInterval(interval);
+                            el.textContent = targetText;
+                            resolve();
+                        }
+                    }, speed);
+                });
+            }
+
+            const langTitles = { fr: "À Propos", en: "About Me" };
+            let decryptRunning = false;
+
+            document.querySelectorAll(".lang-tab").forEach((tab) => {
+                tab.addEventListener("click", async () => {
+                    if (decryptRunning) return;
+                    const lang = tab.dataset.lang;
+                    if (tab.classList.contains("active")) return;
+
+                    decryptRunning = true;
+
+                    // Switch tab styles
+                    document
+                        .querySelectorAll(".lang-tab")
+                        .forEach((t) => t.classList.remove("active"));
+                    tab.classList.add("active");
+
+                    // Switch content visibility
+                    document
+                        .querySelectorAll(".about-lang-content")
+                        .forEach((c) => c.classList.remove("active"));
+                    const newContent = document.querySelector(
+                        `.about-lang-content[data-lang="${lang}"]`,
+                    );
+                    newContent.classList.add("active");
+
+                    // Animate title
+                    const titleEl = document.getElementById("about-title");
+                    const titleTarget = langTitles[lang];
+
+                    // Gather paragraphs and their target text + original HTML
+                    const paragraphs = newContent.querySelectorAll("p");
+                    const pData = Array.from(paragraphs).map((p) => ({
+                        el: p,
+                        text: p.textContent,
+                        html: p.innerHTML,
+                    }));
+
+                    // Run decrypt on title and all paragraphs together
+                    const promises = [decryptTitle(titleEl, titleTarget, 40)];
+                    pData.forEach((d, i) => {
+                        promises.push(
+                            decryptElement(d.el, d.text, d.html, DECRYPT_SPEED),
+                        );
+                    });
+
+                    await Promise.all(promises);
+                    decryptRunning = false;
+                });
+            });
+
+            // ============================================================
+            //  BOOT
+            // ============================================================
+            let introCleanup = null;
+            window.addEventListener("load", async () => {
+                if (!isMobile()) {
+                    try {
+                        await document.fonts.load('600 200px "IBM Plex Mono"');
+                        await document.fonts.load('500 12px "IBM Plex Mono"');
+                    } catch (e) {}
+                    await document.fonts.ready;
+                    introCleanup = initAsciiIntro();
+                }
+            });
+            document
+                .getElementById("intro-screen")
+                .addEventListener("click", () => {
+                    if (introCleanup) introCleanup();
+                    music.play().catch(() => {});
+                    playCircleTransition(() => {
+                        init3DHead();
+                        createParticles();
+                        revealMainContent();
+                    });
+                });
+
+            // ============================================================
+            //  SECRET NUMPAD — click head to toggle (desktop only)
+            // ============================================================
+            const SECRET_CODE = "2954387";
+            let numpadCode = "";
+            let numpadActive = false;
+
+            document
+                .getElementById("head-container")
+                .addEventListener("click", (e) => {
+                    if (isMobile()) return;
+                    e.stopPropagation();
+                    e.preventDefault();
+                    toggleNumpad();
+                });
+
+            function toggleNumpad() {
+                numpadActive = !numpadActive;
+                if (numpadActive) openNumpad();
+                else closeNumpad();
+            }
+
+            function openNumpad() {
+                numpadActive = true;
+                document.body.classList.add("numpad-active");
+
+                const numpad = document.getElementById("secret-numpad");
+
+                // Hide everything except mute button and head
+                const hideTargets = [
+                    ...document.querySelectorAll(".cloud-btn"),
+                    document.getElementById("nametag"),
+                    document.getElementById("song-info"),
+                    document.getElementById("about-btn"),
+                ];
+
+                hideTargets.forEach((el, i) => {
+                    if (!el) return;
+                    el.classList.remove("numpad-show");
+                    el.style.transitionDelay = `${i * 0.03}s`;
+                    el.classList.add("numpad-hide");
+                });
+
+                // Show numpad
+                numpad.style.display = "flex";
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        numpad.classList.add("visible");
+                    });
+                });
+
+                numpadCode = "";
+                updateDisplay();
+            }
+
+            function closeNumpad() {
+                numpadActive = false;
+                document.body.classList.remove("numpad-active");
+
+                const numpad = document.getElementById("secret-numpad");
+
+                numpad.classList.remove("visible");
+                setTimeout(() => {
+                    numpad.style.display = "none";
+                }, 500);
+
+                // Show everything back with stagger
+                const showTargets = [
+                    ...document.querySelectorAll(".cloud-btn"),
+                    document.getElementById("nametag"),
+                    document.getElementById("song-info"),
+                    document.getElementById("about-btn"),
+                ];
+
+                showTargets.forEach((el, i) => {
+                    if (!el) return;
+                    el.style.transitionDelay = `${i * 0.04 + 0.15}s`;
+                    el.classList.remove("numpad-hide");
+                    el.classList.add("numpad-show");
+                });
+
+                // Clean up transition-delay and numpad-show class after animations complete
+                setTimeout(() => {
+                    showTargets.forEach((el) => {
+                        if (!el) return;
+                        el.style.transitionDelay = "";
+                        el.classList.remove("numpad-show");
+                    });
+                }, 800);
+
+                numpadCode = "";
+            }
+
+            function updateDisplay() {
+                const display = document.getElementById("numpad-display");
+                display.textContent = "\u2022".repeat(numpadCode.length);
+                display.classList.remove("shake", "success");
+            }
+
+            // Numpad key clicks
+            document.querySelectorAll(".numpad-key").forEach((key) => {
+                key.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const val = key.dataset.num;
+
+                    if (val === "clear") {
+                        numpadCode = "";
+                        updateDisplay();
+                        return;
+                    }
+                    if (val === "back") {
+                        numpadCode = numpadCode.slice(0, -1);
+                        updateDisplay();
+                        return;
+                    }
+                    if (numpadCode.length >= SECRET_CODE.length) return;
+
+                    numpadCode += val;
+                    updateDisplay();
+
+                    if (numpadCode.length === SECRET_CODE.length) {
+                        const display =
+                            document.getElementById("numpad-display");
+                        if (numpadCode === SECRET_CODE) {
+                            display.classList.add("success");
+                            display.textContent = "\u2713";
+                            setTimeout(() => {
+                                window.location.href =
+                                    "https://www.azttv.me/secret";
+                            }, 600);
+                        } else {
+                            display.classList.add("shake");
+                            setTimeout(() => {
+                                numpadCode = "";
+                                updateDisplay();
+                            }, 500);
+                        }
+                    }
+                });
+            });
+
+            // Close numpad when clicking outside
+            document
+                .getElementById("main-content")
+                .addEventListener("click", (e) => {
+                    if (!numpadActive) return;
+                    if (
+                        e.target.closest("#secret-numpad") ||
+                        e.target.closest("#head-container")
+                    )
+                        return;
+                    closeNumpad();
+                });
+
+            // ============================================================
+            //  HOVER HINTS — show number badge after 2.5s hover
+            // ============================================================
+            document
+                .querySelectorAll(".cloud-btn[data-hint]")
+                .forEach((btn) => {
+                    let hoverTimer = null;
+                    const badge = btn.querySelector(".hint-badge");
+                    if (!badge) return;
+
+                    btn.addEventListener("mouseenter", () => {
+                        hoverTimer = setTimeout(() => {
+                            badge.classList.add("show");
+                        }, 2500);
+                    });
+
+                    btn.addEventListener("mouseleave", () => {
+                        clearTimeout(hoverTimer);
+                        badge.classList.remove("show");
+                    });
+                });
+        </script>
+    </body>
 </html>
