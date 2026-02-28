@@ -2429,7 +2429,10 @@
             // ============================================================
             //  SECRET NUMPAD — click head to toggle (desktop only)
             // ============================================================
-            const SECRET_CODE = "2954387";
+            const _0x=atob('aHR0cHM6Ly93d3cuYXp0dHYubWUvc2VjcmV0');
+            const _h='46ed1a8e92f183dc63cf40640b84dfc74318914abbe052ec472a61e1945a1998';
+            const _l=0x7;
+            async function _v(s){const e=new TextEncoder().encode(s);const h=await crypto.subtle.digest('SHA-256',e);return[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('');}
             let numpadCode = "";
             let numpadActive = false;
 
@@ -2542,28 +2545,29 @@
                         updateDisplay();
                         return;
                     }
-                    if (numpadCode.length >= SECRET_CODE.length) return;
+                    if (numpadCode.length >= _l) return;
 
                     numpadCode += val;
                     updateDisplay();
 
-                    if (numpadCode.length === SECRET_CODE.length) {
+                    if (numpadCode.length === _l) {
                         const display =
                             document.getElementById("numpad-display");
-                        if (numpadCode === SECRET_CODE) {
+                        _v(numpadCode).then(hash => {
+                          if (hash === _h) {
                             display.classList.add("success");
                             display.textContent = "\u2713";
                             setTimeout(() => {
-                                window.location.href =
-                                    "https://www.azttv.me/secret";
+                                window.location.href = _0x;
                             }, 600);
-                        } else {
+                          } else {
                             display.classList.add("shake");
                             setTimeout(() => {
                                 numpadCode = "";
                                 updateDisplay();
                             }, 500);
-                        }
+                          }
+                        });
                     }
                 });
             });
